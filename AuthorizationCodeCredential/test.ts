@@ -76,6 +76,7 @@ async function startServer(): Promise<Closer> {
   });
 
   app.post("/login", async (req: express.Request, res: express.Response) => {
+    console.log("/login");
     // IMPORTANT: Not a real scenario.
     const session = (req as ExpressRequestWithSession).session;
     if (session.username) {
@@ -85,6 +86,7 @@ async function startServer(): Promise<Closer> {
       return;
     }
     const username = req.body.username;
+    console.log("/login", { username });
     session.username = username;
     database[username].loggedIn = true;
     res.sendStatus(200);
@@ -93,8 +95,10 @@ async function startServer(): Promise<Closer> {
   app.get(
     "/azureLogin",
     async (req: express.Request, res: express.Response) => {
+      console.log("/azureLogin");
       const session = (req as ExpressRequestWithSession).session;
       const username = session.username;
+      console.log("/azureLogin", { username });
       if (!(username && database[username].loggedIn)) {
         console.error(`Unauthorized username ${session.username}`);
         res.sendStatus(401);
@@ -173,19 +177,20 @@ async function startServer(): Promise<Closer> {
   );
 
   app.get("/", (req: express.Request, res: express.Response) => {
-    res.write(`
+    res.end(`
       <html>
+      <body>Hello.</body>
       <script>
-      window.onclick = async () => {
+      window.login = () => {
         const body = new FormData();
         body.set("username", "myUsername");
-        return fetch('/login', { method: 'POST', body });
+        return fetch('${homeUri}/login', { method: 'POST', body });
       }
-      window.azureLogin = async () => {
-          window.location = "${homeUri}/azureLogin";
+      window.azureLogin = () => {
+          window.location = "${homeUri}azureLogin";
       }
-      window.me = async () => fetch('/me');
-      window.onclick = async () => fetch('/logout');
+      window.me = () => fetch('${homeUri}/me');
+      window.onclick = () => fetch('${homeUri}/logout');
       </script>
       </html>
   `);
@@ -205,15 +210,22 @@ async function startClient() {
   const page = await browser.newPage();
   console.log("Going to", homeUri);
   await page.goto(homeUri);
-  const firstPage = await page.evaluate(async () => {
-    return (window as any).document.body.innerHtml;
-  });
-  console.log({ firstPage });
-  await page.evaluate(async () => (window as any).login());
-  await delay(1000);
-  await page.evaluate(async () =>
-    console.log((window as any).document.body.innerHtml)
+  const page1Result = await page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const w = window as any;
+        w.login().then((loginResult) => {
+          resolve({ loginResult });
+          w.azureLogin();
+        });
+      })
   );
+  console.log({ page1Result });
+  await delay(1000);
+  const page2Result = await page.evaluate(
+    () => (window as any).document.body.innerHTML
+  );
+  console.log({ page2Result });
   return async () => {};
 }
 
