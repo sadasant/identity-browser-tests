@@ -1,0 +1,47 @@
+
+> identity-browser-tests@1.0.0 format /workspaces/identity-browser-tests
+> prettier --write "./**/*.ts"
+
+AuthorizationCodeCredential/ideal.ts 146ms
+AuthorizationCodeCredential/test.ts 115ms
+Thu, 11 Nov 2021 03:23:37 GMT express-session deprecated undefined resave option; provide resave option at test.ts:74:21
+Thu, 11 Nov 2021 03:23:37 GMT express-session deprecated undefined saveUninitialized option; provide saveUninitialized option at test.ts:74:21
+Authorization code redirect server listening on port 1337
+Going to http://localhost:1337/
+/ { query: {}, sessionUsername: undefined }
+/login { query: { username: 'myUsername' }, sessionUsername: undefined }
+{ page1Result: { loginResult: {} } }
+/azureLogin { query: {}, sessionUsername: 'myUsername' }
+{
+  authorizeUrl: 'https://login.microsoftonline.com/ff48bc3e-37a1-433e-a798-b5440c95437b/oauth2/v2.0/authorize?client_id=eda999f1-6dd3-4256-97df-f367a719b80a&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A1337%2F%2FazureResponse&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default&state=myUsername'
+}
+/azureFakeRedirect {
+  query: {
+    client_id: 'eda999f1-6dd3-4256-97df-f367a719b80a',
+    response_type: 'code',
+    redirect_uri: 'http://localhost:1337//azureResponse',
+    scope: 'https://graph.microsoft.com/.default',
+    state: 'myUsername'
+  },
+  sessionUsername: 'myUsername'
+}
+/azureResponse {
+  query: { code: 'XXXXXXXXX', state: 'myUsername' },
+  sessionUsername: 'myUsername'
+}
+/ { query: {}, sessionUsername: 'myUsername' }
+{
+  page2Result: 'Hello.\n' +
+    '      <script>\n' +
+    '      window.login = () => {\n' +
+    "        return fetch('http://localhost:1337/login?username=myUsername');\n" +
+    '      }\n' +
+    '      window.azureLogin = () => {\n' +
+    '          window.location = "http://localhost:1337/azureLogin";\n' +
+    '      }\n' +
+    "      window.me = () => fetch('http://localhost:1337//me');\n" +
+    "      window.onclick = () => fetch('http://localhost:1337//logout');\n" +
+    '      </script>\n' +
+    '      \n' +
+    '  '
+}

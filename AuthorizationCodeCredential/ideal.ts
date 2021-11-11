@@ -43,23 +43,6 @@ interface UserState {
 
 const database: Record<string, UserState> = {};
 
-function getAuthorizeUrl(
-  tenantId: string,
-  clientId: string,
-  scopes: string,
-  state: string
-): string {
-  const params = new URLSearchParams({
-    client_id: clientId,
-    response_type: "code",
-    redirect_uri: redirectUri,
-    scope: scopes,
-    state,
-  });
-  const query = params.toString();
-  return `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?${query}`;
-}
-
 async function startServer(): Promise<Closer> {
   const app = express();
 
@@ -110,15 +93,21 @@ async function startServer(): Promise<Closer> {
         res.sendStatus(401);
         return;
       }
-      const authorizeUrl = getAuthorizeUrl(
+
+      // disableAutomaticAuthentication set to true forcefully.
+      // getToken() will only work with silent auth.
+      const credential = new WebRedirectCredential(
         tenantId,
         clientId,
-        scope,
-        session.username
+        redirectUri
       );
-      console.log({ authorizeUrl });
-      const query = authorizeUrl.split("?")[1];
-      res.redirect(`/azureFakeRedirect?${query}`);
+      database[username].azure = { credential };
+
+      const state = session.username;
+      const authorizeUrl = credential.getRedirectUri(scope, {
+        state,
+      });
+      res.redirect(authorizeUrl);
     }
   );
 
@@ -147,26 +136,14 @@ async function startServer(): Promise<Closer> {
         return;
       }
 
-      const credential = new AuthorizationCodeCredential(
-        tenantId,
-        clientId,
-        authorizationCode as string,
-        redirectUri
-      );
+      const credential = database[username].azure.credential;
 
-      let accessToken: AccessToken | undefined;
-      let error: Error | undefined;
       try {
-        accessToken = await credential.getToken(scope);
+        const accessToken = await credential.getToken(scope);
+        database[username].azure.accessToken = accessToken;
       } catch (e) {
-        error = e;
+        database[username].azure.error = e;
       }
-
-      database[username].azure = {
-        credential,
-        accessToken,
-        error,
-      };
 
       res.redirect("/");
     }
@@ -254,7 +231,6 @@ async function startClient() {
     () => (window as any).document.body.innerHTML
   );
   console.log({ page2Result });
-
   return async () => {};
 }
 
