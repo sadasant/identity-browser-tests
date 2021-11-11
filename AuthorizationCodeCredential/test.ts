@@ -9,9 +9,9 @@ import {
 import { delay } from "@azure/core-util";
 import * as express from "express";
 import * as session from "express-session";
+import * as bodyParser from "body-parser";
 import * as puppeteer from "puppeteer";
 import * as dotenv from "dotenv";
-import { Server } from "http";
 import {
   createDefaultHttpClient,
   createHttpHeaders,
@@ -36,8 +36,8 @@ type ExpressRequestWithSession = express.Request & {
 interface UserState {
   loggedIn: boolean;
   azure: {
-    accessToken: AccessToken;
-    credential: TokenCredential;
+    accessToken?: AccessToken;
+    credential?: TokenCredential;
   };
 }
 
@@ -63,6 +63,7 @@ function getAuthorizeUrl(
 async function startServer(): Promise<Closer> {
   const app = express();
 
+  app.use(bodyParser());
   // Session management
   app.use(session({ secret: serverSecret }));
 
@@ -85,9 +86,16 @@ async function startServer(): Promise<Closer> {
       res.sendStatus(500);
       return;
     }
+    console.log("/login", { body: req.body });
     const username = req.body.username;
     console.log("/login", { username });
     session.username = username;
+    if (!database[username]) {
+      database[username] = {
+        loggedIn: true,
+        azure: {}
+      };
+    }
     database[username].loggedIn = true;
     res.sendStatus(200);
   });
@@ -184,7 +192,7 @@ async function startServer(): Promise<Closer> {
       window.login = () => {
         const body = new FormData();
         body.set("username", "myUsername");
-        return fetch('${homeUri}/login', { method: 'POST', body });
+        return fetch('${homeUri}login', { method: 'POST', body });
       }
       window.azureLogin = () => {
           window.location = "${homeUri}azureLogin";
