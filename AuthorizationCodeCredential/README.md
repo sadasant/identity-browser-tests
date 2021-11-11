@@ -47,11 +47,11 @@ Has a `getRedirectUri` method:
         redirectUri
       );
 
-      // We save the credential in an in-memory cache.
-      // The sample will elaborate with recommended approaches...
+      // We save the credential in an in-memory cache, or not...
+      // The sample will elaborate with recommended approaches.
 
       // We set something that can identify the user as the state parameter.
-      const state = session.username;
+      const state = session.username; // or ID
 
       // We get the authorize URL.
       const authorizeUrl = credential.getRedirectUri(scope, {
@@ -64,4 +64,57 @@ Has a `getRedirectUri` method:
   );
 ```
 
-Could have a logout method.
+Authenticates with `authenticate()`, and uses the `authenticationRecord` to quickly store serialized info that can be used to retrieve the account from the cache:
+
+```ts
+  app.get(
+    "/azureResponse",
+    async (req: express.Request, res: express.Response): Promise<void> => {
+      const authorizationCode = req.query["code"];
+      if (!authorizationCode) {
+        // throw...
+      }
+
+      const username = req.query["state"];
+
+      // Check that we're logged in, and that the state is valid...
+
+
+      // Either retrieve the credential from in-memory cache, or:
+      const credential = new WebRedirectCredential(
+        tenantId,
+        clientId,
+        redirectUri
+      );
+
+      const authenticationRecord = await credential.authenticate(scope, {
+        authorizationCode
+      });
+      // save the authenticationRecord in a database or in-memory cache...
+
+      // Go to home, or acknowledge the authentication has completed...
+    }
+  );
+
+  // A separate endpoint that uses the Azure API:
+  app.get(
+    "/me",
+    async (req: express.Request, res: express.Response): Promise<void> => {
+      // Check that we're logged in, and that we have authenticated before...
+
+      // Retrieve the authentication record...
+      // const authenticationRecord = //...
+
+      const credential = new WebRedirectCredential(
+        tenantId,
+        clientId,
+        redirectUri,
+        { authenticationRecord }
+      );
+
+      // use the credential...
+    }
+  );
+```
+
+IMPORTANT: Could we provide a method to clear the cache?

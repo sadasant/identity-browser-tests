@@ -3,6 +3,7 @@
 
 import {
   AccessToken,
+  AuthenticationRecord,
   AuthorizationCodeCredential,
   TokenCredential,
 } from "@azure/identity";
@@ -35,6 +36,7 @@ type ExpressRequestWithSession = express.Request & {
 interface UserState {
   loggedIn: boolean;
   azure: {
+    authenticationRecord?: AuthenticationRecord,
     accessToken?: AccessToken;
     credential?: TokenCredential;
     error?: Error;
@@ -139,8 +141,10 @@ async function startServer(): Promise<Closer> {
       const credential = database[username].azure.credential;
 
       try {
-        const accessToken = await credential.getToken(scope);
-        database[username].azure.accessToken = accessToken;
+        const authenticationRecord = await credential.authenticate(scope, {
+          authorizationCode
+        });
+        database[username].azure.authenticationRecord = authenticationRecord;
       } catch (e) {
         database[username].azure.error = e;
       }
@@ -158,13 +162,22 @@ async function startServer(): Promise<Closer> {
         !(
           username &&
           database[username].loggedIn &&
-          database[username].azure?.accessToken
+          database[username].azure?.authenticationRecord
         )
       ) {
         console.error(`Unauthorized username ${session.username}`);
         res.sendStatus(401);
         return;
       }
+
+      const authenticationRecord = database[username].azure?.authenticationRecord;
+      const credential = new WebRedirectCredential(
+        tenantId,
+        clientId,
+        redirectUri,
+        { authenticationRecord }
+      );
+
       const request = createPipelineRequest({
         url: "https://graph.microsoft.com/v1.0/me",
         method: "GET",
