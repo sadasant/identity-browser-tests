@@ -118,7 +118,8 @@ These credentials would be:
 
 - Part of a new plugin package, `@azure/identity-browser`.
 - Named after the `spa` redirect endpoint on the AAD app registration.
-- Throws on Node.js (not isomorphic).
+- Throw on Node.js (not isomorphic).
+- Accept a `state` parameter through the options bag:
 
 `SPAPopupCredential` would have:
 
@@ -137,6 +138,40 @@ const client = new Client("url", credential);
 
 window.onload = () => {
   await credential.onPageLoad();
+}
+
+async function authenticate(): boolean {
+  // To manually authenticate only if getToken throws an AuthenticationRequiredError
+  try {
+    await credential.getToken(scope);
+    return true;
+  } catch(e) {
+    if (e.name === "AuthenticationRequiredError") {
+      await credential.authenticate();
+      // Redirect happens.
+    }
+    return false;
+  }
+}
+
+async function getAzureValues() {
+  await client.method(); // Will throw if the token is expired, or if the user hasn't authenticated.
+}
+```
+
+If sent, the `state` parameter would be retrievable from the `onPageLoad` method.
+
+```ts
+const state = JSON.stringify({
+  origin: window.location.href,
+  user: user.id
+})
+const credential = new SPARedirectCredential(clientId, { state });
+const client = new Client("url", credential);
+
+window.onload = () => {
+  const { state } = await credential.onPageLoad();
+  console.log({ state });
 }
 
 async function authenticate(): boolean {
