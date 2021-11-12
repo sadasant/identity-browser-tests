@@ -162,11 +162,11 @@ There's no current notion of "logging out" or removing those credentials from me
 
 A `WebRedirectCredential()`:
 
-- Part of a new plugin package, `@azure/identity-browser`.
+- Part of a new plugin package, `@azure/identity-web`.
 - Named after the `web` redirect endpoint on the AAD app registration.
-- Throws on the browser.
+- Throws on the browser (not isomorphic).
 - `disableAutomaticAuthentication` set to true (can't change it).
-- `getToken()` will only work with silent auth.
+  - Meaning that if `getToken` can't authenticate silently, an `AuthenticationRequiredError` is thrown and the manual flow can be triggered then.
 
 ```ts
 // disableAutomaticAuthentication set to true forcefully.
