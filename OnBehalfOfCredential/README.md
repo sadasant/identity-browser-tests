@@ -237,31 +237,31 @@ const token2 = await oboCred.getToken("https://storage.azure.com/.default");
 
 Now, let's focus on the changes we can provide to the browser experience.
 
+In a new plugin package named `@azure/identity-spa` after the `spa` redirect endpoint on the AAD app registration.
+
 First, since the `popup` login vs the `redirect` login change heavily how an application is structured, we could separate the `InteractiveBrowserCredential` in two:
 
-- `SPAPopupCredential`.
-- `SPARedirectCredential`.
+- `PopupCredential`.
+- `RedirectCredential`.
 
 These credentials would be:
 
-- Part of a new plugin package, `@azure/identity-browser`.
-- Named after the `spa` redirect endpoint on the AAD app registration.
 - Throw on Node.js (not isomorphic).
 - Accept a `state` parameter through the options bag:
 
-`SPAPopupCredential` would have:
+`PopupCredential` would have:
 
 - Would work exactly as the default behavior of the `InteractiveBrowserCredential` today (using the `popup` login style).
 - Uses will be able to call `getToken` anytime, even through SDK methods, and trust the credential will authenticate and then their code will proceed as usual, without page reload.
 
-`SPARedirectCredential` would have:
+`RedirectCredential` would have:
 
 - `disableAutomaticAuthentication` set to true (can't change it).
   - Meaning that if `getToken` can't authenticate silently, an `AuthenticationRequiredError` is thrown and the manual flow can be triggered then.
 - Would have a method called `onPageLoad()`, that would make it obvious to users that it would need to be executed on page load.
 
 ```ts
-const credential = new SPARedirectCredential(clientId);
+const credential = new RedirectCredential(clientId);
 const client = new Client("url", credential);
 
 window.onload = () => {
@@ -294,7 +294,7 @@ const state = JSON.stringify({
   origin: window.location.href,
   user: user.id
 })
-const credential = new SPARedirectCredential(clientId, { state });
+const credential = new RedirectCredential(clientId, { state });
 const client = new Client("url", credential);
 
 window.onload = () => {
