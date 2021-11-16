@@ -50,10 +50,10 @@ Although the redirection could be handled from the browser as well as from Node,
 
 Besides setting up the App Registration to point to the redirect endpoint of the application, developers need to:
 
-1. Make users go to the `/authenticate` endpoint.
+1. Make users go to the `/authorize` endpoint.
 2. Handle the redirection from Azure.
 
-To make users go to the `/authenticate` endpoint, developers need to build the authenticate endpoint URI. The current approach is only showcased in one of our manual tests, and goes as follows:
+To make users go to the `/authorize` endpoint, developers need to build the authorize endpoint URI. The current approach is only showcased in one of our manual tests, and goes as follows:
 
 ```ts
 function getAuthorizeUrl(

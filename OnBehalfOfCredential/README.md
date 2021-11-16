@@ -89,7 +89,7 @@ app.get(
 
     // Error handling will probably happen here...
 
-    // If a "state" parameter was sent on the query of the /authorize request,
+    // If a "state" parameter was sent on the query of the /authenticate request,
     // we would be able to receive it back here.
     const singlePageApplicationPath = req.query["state"];
 
@@ -264,7 +264,7 @@ These credentials would be:
 const credential = new RedirectCredential(clientId);
 const client = new Client("url", credential);
 
-window.onload = () => {
+window.onload = async () => {
   await credential.onPageLoad();
 }
 
@@ -275,7 +275,7 @@ async function authenticate(): boolean {
     return true;
   } catch(e) {
     if (e.name === "AuthenticationRequiredError") {
-      await credential.authenticate();
+      await credential.authenticate(scope, { state });
       // Redirect happens.
     }
     return false;
