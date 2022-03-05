@@ -124,8 +124,10 @@ export async function prepareServer(
     app,
     database,
     extractUsername,
-    extractToken: (username: string): string =>
-      database[username].azure?.accessToken.token,
+    extractToken: (username: string): string => {
+      console.log({ username, database });
+      return database[username].azure?.accessToken.token;
+    },
     checkLoggedIn: (username: string) => {
       if (!(username && database[username].loggedIn)) {
         throw new Error(`Unauthorized username ${username}`);

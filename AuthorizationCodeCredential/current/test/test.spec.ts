@@ -29,15 +29,19 @@ dotenv.config();
 
 const tenantId = process.env.AZURE_TENANT_ID;
 const clientId = process.env.AZURE_CLIENT_ID;
+const clientSecret = process.env.AZURE_CLIENT_SECRET;
 const serverSecret = process.env.SERVER_SECRET;
+const azureUsername = process.env.AZURE_USERNAME;
+const azurePassword = process.env.AZURE_PASSWORD;
+const protocol = process.env.PROTOCOL || "http";
+const host = process.env.HOST || "localhost";
 const port = process.env.PORT;
+const scope = "https://graph.microsoft.com/.default";
+const homeUri = `http://localhost:${port}`;
 
 // The Azure Active Directory app registration should be of the type
 // "web" and the redirect endpoint should point to:
-const homeUri = `http://localhost:${port}/`;
-
-const redirectUri = `${homeUri}/azureResponse`;
-const scope = "https://graph.microsoft.com/.default";
+const redirectUri = `${protocol}://${host}:${port}/azureResponse`;
 
 // CHALLENGE:
 // The current package @azure/identity does not have a way to retrieve the authorize URL.
@@ -60,6 +64,9 @@ function getAuthorizeUrl(
 }
 
 test("Authenticates", async ({ page }) => {
+  // TODO: Remove the next two lines if we figure out how to dynamically authenticate...
+  test.slow();
+
   const {
     app,
     database,
@@ -81,9 +88,14 @@ test("Authenticates", async ({ page }) => {
       checkLoggedIn(username);
 
       const authorizeUrl = getAuthorizeUrl(tenantId, clientId, scope, username);
-      console.log({ authorizeUrl });
 
-      res.redirect(authorizeUrl);
+      // TODO: Reinstate the next line once I figure out how to fill the form...
+      // res.redirect(authorizeUrl);
+
+      // TODO: Also, these two lines when I figure out dynamic auth
+      console.log("GO TO:", authorizeUrl);
+
+      res.sendStatus(200);
     }
   );
 
@@ -99,11 +111,14 @@ test("Authenticates", async ({ page }) => {
       }
 
       const username = req.query["state"] as string;
+      console.log({ authorizationCode, username });
+
       checkLoggedIn(username);
 
       const credential = new AuthorizationCodeCredential(
         tenantId,
         clientId,
+        clientSecret,
         authorizationCode as string,
         redirectUri
       );
@@ -111,7 +126,7 @@ test("Authenticates", async ({ page }) => {
       const accessToken = await credential.getToken(scope);
       saveAzureState(username, { credential, accessToken });
 
-      res.redirect("/");
+      res.sendStatus(200);
     }
   );
 
@@ -155,7 +170,9 @@ test("Authenticates", async ({ page }) => {
   const username = "testuser";
 
   // Authenticates on the test server
-  const loginResponse = await page.goto(`${homeUri}login?username=${username}`);
+  const loginResponse = await page.goto(
+    `${homeUri}/login?username=${username}`
+  );
   await expect(loginResponse.status(), "Login should have succeeded").toBe(200);
   await expect(
     database[username].loggedIn,
@@ -163,7 +180,12 @@ test("Authenticates", async ({ page }) => {
   ).toBeTruthy();
 
   // Authenticates on the test server
-  // await page.goto(`${homeUri}azureLogin`);
+  await page.goto(`${homeUri}/azureLogin`);
+  // await page.waitForNavigation({ url: '**/login' })
+  await page.waitForTimeout(20000);
+
+  await page.goto(`${homeUri}/me`);
+  await page.waitForTimeout(5000);
 
   await stop();
 });

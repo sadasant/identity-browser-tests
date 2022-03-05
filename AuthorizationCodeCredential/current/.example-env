@@ -1,4 +1,7 @@
 AZURE_CLIENT_ID=azure-app-client-id
 AZURE_TENANT_ID=azure-directory-id
+AZURE_CLIENT_SECRET=azure-app-secret
 SERVER_SECRET=server-secret
+PROTOCOL=http
+HOST=localhost
 PORT=8080
