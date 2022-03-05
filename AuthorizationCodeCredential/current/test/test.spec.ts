@@ -14,6 +14,7 @@ import {
 import { delay } from "@azure/core-util";
 import { test, expect } from "@playwright/test";
 import { prepareServer } from "./server";
+import { credentialWrapper, sendRequest } from "./wrappers";
 import * as express from "express";
 import * as dotenv from "dotenv";
 
@@ -38,6 +39,9 @@ const host = process.env.HOST || "localhost";
 const port = process.env.PORT;
 const scope = "https://graph.microsoft.com/.default";
 const homeUri = `http://localhost:${port}`;
+const authorizeHost =
+  process.env.AUTHORIZE_HOST ||
+  `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0`;
 
 // The Azure Active Directory app registration should be of the type
 // "web" and the redirect endpoint should point to:
@@ -60,7 +64,9 @@ function getAuthorizeUrl(
     state,
   });
   const query = params.toString();
-  return `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?${query}`;
+  // Here's how the real call would look:
+  // return `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?${query}`;
+  return `${authorizeHost}/authorize?${query}`;
 }
 
 test("Authenticates", async ({ page }) => {
@@ -87,18 +93,15 @@ test("Authenticates", async ({ page }) => {
       const username = extractUsername(req);
       checkLoggedIn(username);
 
-      const authorizeUrl = getAuthorizeUrl(tenantId, clientId, scope, username);
-
-      // TODO: Reinstate the next line once I figure out how to fill the form...
-      // res.redirect(authorizeUrl);
-
-      // TODO: Also, these two lines when I figure out dynamic auth
-      console.log("GO TO:", authorizeUrl);
-
-      res.sendStatus(200);
+      const url = getAuthorizeUrl(tenantId, clientId, scope, username);
+      console.log("Redirecting to", url);
+      res.redirect(url);
     }
   );
 
+  /**
+   * Processing Azure's response
+   */
   app.get(
     "/azureResponse",
     async (req: express.Request, res: express.Response): Promise<void> => {
@@ -123,7 +126,7 @@ test("Authenticates", async ({ page }) => {
         redirectUri
       );
 
-      const accessToken = await credential.getToken(scope);
+      const accessToken = await credentialWrapper(credential).getToken(scope);
       saveAzureState(username, { credential, accessToken });
 
       res.sendStatus(200);
@@ -150,10 +153,8 @@ test("Authenticates", async ({ page }) => {
       });
 
       const client = createDefaultHttpClient();
-      const response = await client.sendRequest(request);
-      console.log({ response });
-
-      res.sendStatus(response.status);
+      const response = await sendRequest(client, request);
+      res.send(JSON.stringify(response));
     }
   );
 
@@ -181,11 +182,10 @@ test("Authenticates", async ({ page }) => {
 
   // Authenticates on the test server
   await page.goto(`${homeUri}/azureLogin`);
-  // await page.waitForNavigation({ url: '**/login' })
-  await page.waitForTimeout(20000);
 
-  await page.goto(`${homeUri}/me`);
-  await page.waitForTimeout(5000);
+  // Once authenticated, makes an authenticated call to Azure.
+  const result = await page.goto(`${homeUri}/me`);
+  console.log(await result.text());
 
   await stop();
 });

@@ -72,12 +72,27 @@ export async function prepareServer(
 ): Promise<PepareServerResult> {
   const app = express();
   const database: Record<string, UserState> = {};
+  const { port, serverSecret } = serverOptions;
 
   function extractUsername(req: express.Request) {
     return (req as ExpressRequestWithSession).session.username;
   }
 
-  app.use(session({ secret: serverOptions.serverSecret }));
+  app.use(session({ secret: serverSecret }));
+
+  /**
+   * Logging calls.
+   */
+  app.use(
+    (
+      req: express.Request,
+      res: express.Response,
+      next: express.NextFunction
+    ) => {
+      console.log("Server:", req.url);
+      next();
+    }
+  );
 
   /**
    * Logout just deletes the user from the session.
@@ -114,6 +129,17 @@ export async function prepareServer(
       };
     }
 
+    /**
+     * Fake version of the Azure interactive authentication service
+     */
+    app.get(
+      "/authorize",
+      async (req: express.Request, res: express.Response) => {
+        const state = req.query["state"];
+        res.redirect(`/azureResponse?code=CODE&state=${state}`);
+      }
+    );
+
     database[username].loggedIn = true;
     res.sendStatus(200);
   });
@@ -125,7 +151,6 @@ export async function prepareServer(
     database,
     extractUsername,
     extractToken: (username: string): string => {
-      console.log({ username, database });
       return database[username].azure?.accessToken.token;
     },
     checkLoggedIn: (username: string) => {
