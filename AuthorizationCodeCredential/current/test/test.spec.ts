@@ -12,9 +12,12 @@ import {
   createPipelineRequest,
 } from "@azure/core-rest-pipeline";
 import { delay } from "@azure/core-util";
-import { test } from "@playwright/test";
-import * as express from "express";
+import { test, expect } from "@playwright/test";
 import { prepareServer } from "./server";
+import * as express from "express";
+import * as dotenv from "dotenv";
+
+dotenv.config();
 
 // This test shows how to authenticate a Node.js web server using the AuthorizationCodeCredential.
 // Throughout this document, we'll point out to the challenges of the existing approach with comment sections
@@ -59,6 +62,7 @@ function getAuthorizeUrl(
 test("Authenticates", async ({ page }) => {
   const {
     app,
+    database,
     extractUsername,
     extractToken,
     checkLoggedIn,
@@ -146,9 +150,17 @@ test("Authenticates", async ({ page }) => {
     route.continue();
   });
 
+  // THE TEST BEGINS
+
+  const username = "testuser";
+
   // Authenticates on the test server
-  const loginResponse = await page.goto(`${homeUri}login?username=testuser`);
-  console.log({ loginResponse });
+  const loginResponse = await page.goto(`${homeUri}login?username=${username}`);
+  await expect(loginResponse.status(), "Login should have succeeded").toBe(200);
+  await expect(
+    database[username].loggedIn,
+    "Database should report the user has logged in"
+  ).toBeTruthy();
 
   // Authenticates on the test server
   // await page.goto(`${homeUri}azureLogin`);
