@@ -15,6 +15,7 @@ import { delay } from "@azure/core-util";
 import { test, expect } from "@playwright/test";
 import { prepareServer } from "./server";
 import { credentialWrapper, sendRequest } from "./wrappers";
+import { getAuthorizeUrl } from "./utils";
 import * as express from "express";
 import * as dotenv from "dotenv";
 
@@ -24,9 +25,18 @@ dotenv.config();
 // Throughout this document, we'll point out to the challenges of the existing approach with comment sections
 // that will begin with "CHALLENGE", for example:
 //
-//     CHALLENGE:
+//     CHALLENGE (n of N):
 //     <explanation-of-the-challenge>
 //
+// Challenges:
+// 1. Authorize URI.
+// 2. No notion of the "state" parameter.
+// 3. How to tie Azure credentials with web service user.
+// 4. Save a credential for future requests.
+// 5. How to recover a credential in the future?
+//
+// Not in this document:
+// - How to log out, since we can remove the reference in memory.
 
 const tenantId = process.env.AZURE_TENANT_ID;
 const clientId = process.env.AZURE_CLIENT_ID;
@@ -47,32 +57,7 @@ const authorizeHost =
 // "web" and the redirect endpoint should point to:
 const redirectUri = `${protocol}://${host}:${port}/azureResponse`;
 
-// CHALLENGE:
-// The current package @azure/identity does not have a way to retrieve the authorize URL.
-
-function getAuthorizeUrl(
-  tenantId: string,
-  clientId: string,
-  scopes: string,
-  state: string
-): string {
-  const params = new URLSearchParams({
-    client_id: clientId,
-    response_type: "code",
-    redirect_uri: redirectUri,
-    scope: scopes,
-    state,
-  });
-  const query = params.toString();
-  // Here's how the real call would look:
-  // return `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?${query}`;
-  return `${authorizeHost}/authorize?${query}`;
-}
-
 test("Authenticates", async ({ page }) => {
-  // TODO: Remove the next two lines if we figure out how to dynamically authenticate...
-  test.slow();
-
   const {
     app,
     database,
@@ -93,8 +78,18 @@ test("Authenticates", async ({ page }) => {
       const username = extractUsername(req);
       checkLoggedIn(username);
 
-      const url = getAuthorizeUrl(tenantId, clientId, scope, username);
+      // CHALLENGE (1 of N):
+      // The current package @azure/identity does not have a way to retrieve the authorize URI.
+      const url = getAuthorizeUrl(
+        authorizeHost,
+        tenantId,
+        clientId,
+        scope,
+        username,
+        redirectUri
+      );
       console.log("Redirecting to", url);
+
       res.redirect(url);
     }
   );
@@ -113,9 +108,14 @@ test("Authenticates", async ({ page }) => {
         );
       }
 
+      // CHALLENGE (2 of N):
+      // We currently don't have any notion of the "state" parameter on @azure/identity
       const username = req.query["state"] as string;
       console.log({ authorizationCode, username });
 
+      // CHALLENGE (3 of N):
+      // No sample showcasing how to tie the Azure credentials
+      // with the authenticated user of a web service.
       checkLoggedIn(username);
 
       const credential = new AuthorizationCodeCredential(
@@ -126,6 +126,8 @@ test("Authenticates", async ({ page }) => {
         redirectUri
       );
 
+      // CHALLENGE (4 of N):
+      // How to store the credential of an authenticated user for future requests?
       const accessToken = await credentialWrapper(credential).getToken(scope);
       saveAzureState(username, { credential, accessToken });
 
@@ -142,6 +144,8 @@ test("Authenticates", async ({ page }) => {
       const username = extractUsername(req);
       checkLoggedIn(username);
 
+      // CHALLENGE (5 of N):
+      // How to recover a credential in the future?
       const token = extractToken(username);
 
       const request = createPipelineRequest({
