@@ -21,6 +21,7 @@
     "@azure/core-auth": "^1.3.2",
     "@azure/core-rest-pipeline": "^1.6.0",
     "@azure/identity": "^2.0.4",
+    "@azure/identity-web": "./azure-identity-web-1.0.0-beta.1.tgz",
     "express": "^4.17.3",
     "express-session": "^1.17.2",
     "prettier": "^2.5.1"

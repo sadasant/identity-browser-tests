@@ -233,9 +233,7 @@ app.get(
       redirectUri
     );
 
-    const authenticationRecord = await credential.authenticate(scope, {
-      authorizationCode
-    });
+    const authenticationRecord = await credential.authenticate(scope, authorizationCode);
     // save the authenticationRecord in a database or in-memory cache...
 
     // Go to home, or acknowledge the authentication has completed...
