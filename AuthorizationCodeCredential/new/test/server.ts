@@ -23,6 +23,7 @@ type ExpressRequestWithSession = express.Request & {
  * Representative of the state relative to the Azure authentication
  */
 export interface AzureState {
+  authenticationRecord?: AuthenticationRecord;
   accessToken?: AccessToken;
   credential?: TokenCredential;
 }
@@ -153,13 +154,19 @@ export async function prepareServer(
     extractToken: (username: string): string => {
       return database[username].azure?.accessToken.token;
     },
+    extractCredential: (username: string): string => {
+      return database[username].azure?.credential;
+    },
     checkLoggedIn: (username: string) => {
       if (!(username && database[username].loggedIn)) {
         throw new Error(`Unauthorized username ${username}`);
       }
     },
     saveAzureState: async (username: string, options: AzureState) => {
-      database[username].azure = options;
+      database[username].azure = {
+        ...database[username].azure,
+        ...options,
+      };
     },
     async start() {
       server = app.listen(serverOptions.port, () => {

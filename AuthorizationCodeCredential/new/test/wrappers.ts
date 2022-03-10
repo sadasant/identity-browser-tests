@@ -1,12 +1,22 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { AccessToken, TokenCredential } from "@azure/identity";
+import {
+  AccessToken,
+  AuthenticationRecord,
+  TokenCredential,
+} from "@azure/identity";
 import { HttpClient, PipelineRequest } from "@azure/core-rest-pipeline";
 
 export function credentialWrapper(
   credential: TokenCredential
-): TokenCredential {
+): TokenCredential & {
+  authenticate(
+    scopes: string | string[],
+    authorizationCode: string,
+    options: GetTokenOptions = {}
+  ): Promise<AuthenticationRecord | undefined>;
+} {
   return {
     async getToken(scopes: string | string[]): Promise<AccessToken> {
       if (process.env.TEST_MODE !== "playback") {
@@ -17,6 +27,21 @@ export function credentialWrapper(
       return {
         token: "TOKEN",
         expiresOnTimestamp: date.getTime(),
+      };
+    },
+    async authenticate(
+      scopes: string | string[],
+      authorizationCode: string
+    ): Promise<AuthenticationRecord> {
+      if (process.env.TEST_MODE !== "playback") {
+        return credential.authenticate(scopes, authorizationCode);
+      }
+      return {
+        authority: "authority",
+        clientId: "client-id",
+        homeAccountId: "home-account-id",
+        tenantId: "tenant-id",
+        username: "username",
       };
     },
   };

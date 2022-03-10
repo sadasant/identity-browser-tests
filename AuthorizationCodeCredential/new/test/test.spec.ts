@@ -18,6 +18,7 @@ import { credentialWrapper, sendRequest } from "./wrappers";
 import { getAuthorizeUrl } from "./utils";
 import * as express from "express";
 import * as dotenv from "dotenv";
+import { WebRedirectCredential } from "@azure/identity-web";
 
 dotenv.config();
 
@@ -34,7 +35,7 @@ dotenv.config();
 // along with how our new approach solves this challenge.
 // For example:
 //
-//     CHALLENGE (n of N):
+//     CHALLENGE (n of 5):
 //     <explanation-of-the-challenge>
 //     SOLUTION:
 //     <explanation-of-the-solution>
@@ -74,6 +75,7 @@ test("Authenticates", async ({ page }) => {
     database,
     extractUsername,
     extractToken,
+    extractCredential,
     checkLoggedIn,
     saveAzureState,
     start,
@@ -89,18 +91,33 @@ test("Authenticates", async ({ page }) => {
       const username = extractUsername(req);
       checkLoggedIn(username);
 
-      // CHALLENGE (1 of N):
+      // CHALLENGE (1 of 5):
       // The current package @azure/identity does not have a way to retrieve the authorize URI.
-      const url = getAuthorizeUrl(
-        authorizeHost,
+      // SOLUTION:
+      // `WebRedirectCredential` has a method `getAuthorizeUrl`.
+      const credential = new WebRedirectCredential(
         tenantId,
         clientId,
-        scope,
-        username,
-        redirectUri
+        redirectUri,
+        { clientSecret }
       );
-      console.log("Redirecting to", url);
 
+      // CHALLENGE (4 of 5) (part 1 of 2):
+      // How to store the credential of an authenticated user for future requests?
+      // SOLUTION:
+      // We will provide a sample (and tests) similar to this file.
+      saveAzureState(username, { credential });
+
+      const url = credential.getAuthorizeUrl(
+        scope,
+        // CHALLENGE (2 of 5):
+        // We currently don't have any notion of the "state" parameter on @azure/identity
+        // SOLUTION:
+        // `getAuthorizeUrl` allows specifying a `state` property.
+        { authorizeHost, state: username }
+      );
+
+      console.log("Redirecting to", url);
       res.redirect(url);
     }
   );
@@ -119,28 +136,26 @@ test("Authenticates", async ({ page }) => {
         );
       }
 
-      // CHALLENGE (2 of N):
-      // We currently don't have any notion of the "state" parameter on @azure/identity
       const username = req.query["state"] as string;
       console.log({ authorizationCode, username });
 
-      // CHALLENGE (3 of N):
+      // CHALLENGE (3 of 5):
       // No sample showcasing how to tie the Azure credentials
       // with the authenticated user of a web service.
+      // SOLUTION:
+      // We will provide a sample (and tests) similar to this file.
       checkLoggedIn(username);
 
-      const credential = new AuthorizationCodeCredential(
-        tenantId,
-        clientId,
-        clientSecret,
-        authorizationCode as string,
-        redirectUri
-      );
-
-      // CHALLENGE (4 of N):
+      // CHALLENGE (4 of 5) (part 1 of 2):
       // How to store the credential of an authenticated user for future requests?
-      const accessToken = await credentialWrapper(credential).getToken(scope);
-      saveAzureState(username, { credential, accessToken });
+      // SOLUTION:
+      // We will provide a sample (and tests) similar to this file.
+      // IMPORTANT: the use of authenticate() is key since it will match our future redis-caching.
+      const credential = extractCredential(username);
+      const authenticationRecord = await credentialWrapper(
+        credential
+      ).authenticate(scope, authorizationCode);
+      saveAzureState(username, { authenticationRecord });
 
       res.sendStatus(200);
     }
@@ -155,9 +170,16 @@ test("Authenticates", async ({ page }) => {
       const username = extractUsername(req);
       checkLoggedIn(username);
 
-      // CHALLENGE (5 of N):
+      // CHALLENGE (5 of 5):
       // How to recover a credential in the future?
-      const token = extractToken(username);
+      // SOLUTION:
+      // We will provide a sample (and tests) similar to this file.
+      // Also, storing the authenticationRecord will help reduce network calls.
+      // IMPORTANT: the use of authenticate() is key since it will match our future redis-caching.
+      const credential = extractCredential(username);
+      const authenticationRecord = await credentialWrapper(credential).getToken(
+        scope
+      );
 
       const request = createPipelineRequest({
         url: "https://graph.microsoft.com/v1.0/me",

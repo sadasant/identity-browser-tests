@@ -78,14 +78,16 @@ test("Authenticates", async ({ page }) => {
       const username = extractUsername(req);
       checkLoggedIn(username);
 
-      // CHALLENGE (1 of N):
+      // CHALLENGE (1 of 5):
       // The current package @azure/identity does not have a way to retrieve the authorize URI.
       const url = getAuthorizeUrl(
         authorizeHost,
         tenantId,
         clientId,
         scope,
-        username,
+        // CHALLENGE (2 of 5):
+        // We currently don't have any notion of the "state" parameter on @azure/identity
+        username, // this will be sent as the "state" on the ourgoing query.
         redirectUri
       );
       console.log("Redirecting to", url);
@@ -108,12 +110,10 @@ test("Authenticates", async ({ page }) => {
         );
       }
 
-      // CHALLENGE (2 of N):
-      // We currently don't have any notion of the "state" parameter on @azure/identity
       const username = req.query["state"] as string;
       console.log({ authorizationCode, username });
 
-      // CHALLENGE (3 of N):
+      // CHALLENGE (3 of 5):
       // No sample showcasing how to tie the Azure credentials
       // with the authenticated user of a web service.
       checkLoggedIn(username);
@@ -126,7 +126,7 @@ test("Authenticates", async ({ page }) => {
         redirectUri
       );
 
-      // CHALLENGE (4 of N):
+      // CHALLENGE (4 of 5):
       // How to store the credential of an authenticated user for future requests?
       const accessToken = await credentialWrapper(credential).getToken(scope);
       saveAzureState(username, { credential, accessToken });
@@ -144,7 +144,7 @@ test("Authenticates", async ({ page }) => {
       const username = extractUsername(req);
       checkLoggedIn(username);
 
-      // CHALLENGE (5 of N):
+      // CHALLENGE (5 of 5):
       // How to recover a credential in the future?
       const token = extractToken(username);
 
