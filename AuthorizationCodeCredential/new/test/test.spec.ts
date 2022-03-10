@@ -21,12 +21,23 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-// This test shows how to authenticate a Node.js web server using the AuthorizationCodeCredential.
-// Throughout this document, we'll point out to the challenges of the existing approach with comment sections
-// that will begin with "CHALLENGE", for example:
+// This test shows how to authenticate a Node.js web server using
+// the new proposed `WebRedirectCredential`.
+//
+// The package `@azure/identity-web` is hosted here:
+// <link to branch>
+//
+// At the root of the `new` folder, we have a copy of the generated
+// tar.gz of this package.
+//
+// Throughout this document, we'll point out to the challenges of the existing approach with comment sections,
+// along with how our new approach solves this challenge.
+// For example:
 //
 //     CHALLENGE (n of N):
 //     <explanation-of-the-challenge>
+//     SOLUTION:
+//     <explanation-of-the-solution>
 //
 // Challenges:
 // 1. No API to get the authorize URI.
