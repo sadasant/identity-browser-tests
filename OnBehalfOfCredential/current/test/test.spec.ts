@@ -35,9 +35,6 @@ dotenv.config();
 // 4. No way to log out.
 // 5. No sample using browser authentication and then using the `OnBehalfOfCredential`.
 // 6. No sample showcasing the scope the browser credential must use for the On-Behalf-Of-Flow.
-//
-// Not in this document:
-// - How to log out, since we can remove the reference in memory.
 
 const tenantId = process.env.AZURE_TENANT_ID;
 const clientId = process.env.AZURE_CLIENT_ID;
@@ -69,72 +66,6 @@ test("Authenticates", async ({ page }) => {
     start,
     stop,
   } = await prepareServer({ serverSecret, port });
-
-  /**
-   * Begins the authentication process with Azure.
-   */
-  app.get(
-    "/azureLogin",
-    async (req: express.Request, res: express.Response) => {
-      const username = extractUsername(req);
-      checkLoggedIn(username);
-
-      // CHALLENGE (1 of 5):
-      // The current package @azure/identity does not have a way to retrieve the authorize URI.
-      const url = getAuthorizeUrl(
-        authorizeHost,
-        tenantId,
-        clientId,
-        scope,
-        // CHALLENGE (2 of 5):
-        // We currently don't have any notion of the "state" parameter on @azure/identity
-        username, // this will be sent as the "state" on the ourgoing query.
-        redirectUri
-      );
-      console.log("Redirecting to", url);
-
-      res.redirect(url);
-    }
-  );
-
-  /**
-   * Processing Azure's response
-   */
-  app.get(
-    "/azureResponse",
-    async (req: express.Request, res: express.Response): Promise<void> => {
-      // The redirect will either contain a "code" or an "error"
-      const authorizationCode = req.query["code"];
-      if (!authorizationCode) {
-        throw new Error(
-          `Authentication Error "${req.query["error"]}":\n\n${req.query["error_description"]}`
-        );
-      }
-
-      const username = req.query["state"] as string;
-      console.log({ authorizationCode, username });
-
-      // CHALLENGE (3 of 5):
-      // No sample showcasing how to tie the Azure credentials
-      // with the authenticated user of a web service.
-      checkLoggedIn(username);
-
-      const credential = new AuthorizationCodeCredential(
-        tenantId,
-        clientId,
-        clientSecret,
-        authorizationCode as string,
-        redirectUri
-      );
-
-      // CHALLENGE (4 of 5):
-      // How to store the credential of an authenticated user for future requests?
-      const accessToken = await credentialWrapper(credential).getToken(scope);
-      saveAzureState(username, { credential, accessToken });
-
-      res.sendStatus(200);
-    }
-  );
 
   /**
    * Sends a request to Azure's /me
