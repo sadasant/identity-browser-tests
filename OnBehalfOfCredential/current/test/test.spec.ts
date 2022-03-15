@@ -178,5 +178,10 @@ test("Authenticates", async ({ page }) => {
     // the redirection happened.
   });
 
+  // TODO: Use OBO.
+  // I was wondering whether we should keep
+  // or ditch this champion scenario for the first phase
+  // of this project.
+
   await stop();
 });
