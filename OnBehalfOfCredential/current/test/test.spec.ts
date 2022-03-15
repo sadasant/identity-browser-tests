@@ -161,12 +161,13 @@ test("Authenticates", async ({ page }) => {
   await page.waitForNavigation({ url: '**/azureResponse' })
 
   await page.evaluate(() => {
+    // CHALLENGE (5 of 8):
     // 5. After redirection, the credential retrieves
     // the code from the URL, which might be confusing
     // since this is hidden from the user.
 
-    // CHALLENGE (3 of 8):
-    // 4. How to handle multiple users in the browser?
+    // CHALLENGE (6 of 8):
+    // 6. How to handle multiple users in the browser?
     // At the moment, there's now way to know what user authenticated,
     // and how to manage multiple users over time.
     // Every time one authenticates, that user becomes
