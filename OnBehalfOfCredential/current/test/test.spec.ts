@@ -144,7 +144,18 @@ test("Authenticates", async ({ page }) => {
     // and after we come back from the redirection,
     // we won't be able to know at what step of the "state"
     // the redirection happened.
+
     credential.getToken(scope)
+  });
+
+  // TODO: Wait for redirection...
+  await page.evaluate(() => {
+    // CHALLENGE (3 of 6):
+    // 3. How to handle multiple users in the browser?
+    // At the moment, there's now way to know what user authenticated,
+    // and how to manage multiple users over time.
+    // Every time one authenticates, that user becomes
+    // (apparently) the only user authenticated.
   });
 
   await stop();
