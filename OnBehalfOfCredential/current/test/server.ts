@@ -152,6 +152,25 @@ export async function prepareServer(
 `)
     }
   );
+
+  /**
+   * Azure Redirect
+   */
+  app.get(
+    "/azureResponse",
+    async (req: express.Request, res: express.Response) => {
+      const identitySource = fs.readFileSync("../node_modules/@azure/identity/dist/index.js", { encoding: "utf8" });
+      res.send(`
+<html>
+  <head>
+    <script>${identitySource}</script>
+  </head>
+  <body>
+  </body>
+</html>
+`)
+    }
+  );
  
   let server: Server | undefined = undefined;
 

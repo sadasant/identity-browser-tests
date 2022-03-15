@@ -31,10 +31,10 @@ dotenv.config();
 // Challenges:
 // 1. `loginStyle` changes authentication drastically.
 // 2. No "state" parameter.
-// 3. How to handle multiple users in the browser?
-// 4. No way to log out.
-// 5. No sample using browser authentication and then using the `OnBehalfOfCredential`.
-// 6. No sample showcasing the scope the browser credential must use for the On-Behalf-Of-Flow.
+// 3. No sample showcasing the scope the browser credential must use for the On-Behalf-Of-Flow.
+// 4. How to handle multiple users in the browser?
+// 5. No way to log out.
+// 6. No sample using browser authentication and then using the `OnBehalfOfCredential`.
 
 const tenantId = process.env.AZURE_TENANT_ID;
 const clientId = process.env.AZURE_CLIENT_ID;
@@ -45,7 +45,6 @@ const azurePassword = process.env.AZURE_PASSWORD;
 const protocol = process.env.PROTOCOL || "http";
 const host = process.env.HOST || "localhost";
 const port = process.env.PORT;
-const scope = "https://graph.microsoft.com/.default";
 const homeUri = `http://localhost:${port}`;
 const authorizeHost =
   process.env.AUTHORIZE_HOST ||
@@ -144,14 +143,20 @@ test("Authenticates", async ({ page }) => {
     // and after we come back from the redirection,
     // we won't be able to know at what step of the "state"
     // the redirection happened.
+    
+    // CHALLENGE (3 of 6):
+    // 3. No sample showcasing the scope the browser credential
+    //    must use for the On-Behalf-Of-Flow.
 
-    credential.getToken(scope)
+    credential.getToken(`api://${clientId}/Read`)
   });
 
-  // TODO: Wait for redirection...
+  // Waiting for redirection...
+  await page.waitForNavigation({ url: '**/azureResponse' })
+
   await page.evaluate(() => {
     // CHALLENGE (3 of 6):
-    // 3. How to handle multiple users in the browser?
+    // 4. How to handle multiple users in the browser?
     // At the moment, there's now way to know what user authenticated,
     // and how to manage multiple users over time.
     // Every time one authenticates, that user becomes
