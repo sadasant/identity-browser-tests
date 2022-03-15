@@ -1,5 +1,4 @@
-AZURE_CLIENT_ID=azure-app-client-id
-AZURE_TENANT_ID=azure-directory-id
+AZURE_CLIENT_ID=azure-app-client-id AZURE_TENANT_ID=azure-directory-id
 AZURE_CLIENT_SECRET=azure-app-secret
 AUTHORIZE_HOST=
 SERVER_SECRET=server-secret

@@ -3,7 +3,6 @@
 
 import {
   AccessToken,
-  InteractiveBrowserCredential,
   TokenCredential,
 } from "@azure/identity";
 import {
@@ -47,7 +46,7 @@ const protocol = process.env.PROTOCOL || "http";
 const host = process.env.HOST || "localhost";
 const port = process.env.PORT;
 const scope = "https://graph.microsoft.com/.default";
-const homeUri = `http://localhost:${port}`;
+const homeUri = `http://localhost:${port}/index`;
 const authorizeHost =
   process.env.AUTHORIZE_HOST ||
   `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0`;
@@ -55,67 +54,75 @@ const clearState = process.env.CLEAR_STATE;
 
 // The Azure Active Directory app registration should be of the type
 // "web" and the redirect endpoint should point to:
-const redirectUri = `${protocol}://${host}:${port}/`;
+const redirectUri = `${protocol}://${host}:${port}/index`;
 
 test("Authenticates", async ({ page }) => {
-  const webpackPath = path.resolve("./webpack");
-  console.log({ webpackPath });
-  const server = childProcess.spawn("npm start", { cwd: webpackPath });
+  // const webpackPath = path.resolve("./webpack");
+  // console.log({ webpackPath });
+  // const server = childProcess.spawn("npm", ["start"], { cwd: webpackPath });
+  // server.stdout.pipe(process.stdout);
+  // server.stderr.pipe(process.stderr);
 
   // Log and continue all network requests
   await page.route("**", (route) => {
-    console.log(route.request().url());
+    console.log("ROUTE:" ,route.request().url());
     route.continue();
   });
 
+  // Logging the page's console.logs
+  page.on('console', async msg => {
+    const values = [];
+    for (const arg of msg.args()) {
+      values.push(await arg.jsonValue());
+    }
+    console.log(...values);
+  });
+
   // THE TEST BEGINS
+  
+  // await delay(20000);
 
   const username = "testuser";
 
   // We go to the home page
-  await page.goto(`${homeUri}/`);
+  await page.goto(homeUri);
 
-  if (clearState) {
-    // Create state in the web page
-    await page.evaluate(() => {
-      window.localStorage.page = undefined;
-    });
-  }
-
+  console.log(await page.content());
   // Create state in the web page
   await page.evaluate(() => {
-    if (!window.localStorage.pageState) {
-      window.localStorage.page = {
-        steps: 0,
-        timeout: 1000,
-      };
-    }
+    window.localStorage.steps = 0
     setTimeout(() => {
-      window.localStorage.page.steps += 1;
-    }, window.localStorage.page.timeout);
+      window.localStorage.steps += 1;
+    }, 100);
   });
+
+  // Wait until the page loads
+  // await expect(page.locator('h1')).toHaveText('Azure SDK Browser Manual Tests');
 
   // Authenticate
-  await page.evaluate(() => {
-    const credential = new InteractiveBrowserCredential({
-      clientId,
-      // CHALLENGE (1 of 6):
-      // 1. `loginStyle` changes authentication drastically.
-      // // loginStyle: "popup"
-    });
-
-    credential.getToken(scope);
-  });
+  await page.evaluate(({ clientId }) => {
+    console.log("State steps:", window.localStorage.steps);
+    console.log("Credential:", (window as any).InteractiveBrowserCredential);
+    window.onload = () => {
+      const credential = new (window as any).InteractiveBrowserCredential({
+        clientId,
+        // CHALLENGE (1 of 6):
+        // 1. `loginStyle` changes authentication drastically.
+        // // loginStyle: "popup"
+      });
+      credential.getToken(scope);
+    }
+  }, { clientId });
 
   // Waiting for redirection...
   await page.waitForNavigation({ url: "**/authorize" });
 
   // TEST LOGIC: Force the redirection
-  await page.evaluate(async () => {
+  await page.evaluate(async ({ redirectUri }) => {
     window.location = `${redirectUri}?code=ASDFASDFASDF` as any;
-  });
+  }, { redirectUri });
 
-  await page.evaluate(async () => {
+  await page.evaluate(async ({ clientId }) => {
     // CHALLENGE (2 of 6):
     // 2. It might be weird that getToken completely obliterates
     // the currently running program (by redirecting).
@@ -132,7 +139,7 @@ test("Authenticates", async ({ page }) => {
     // Every time one authenticates, that user becomes
     // (apparently) the only user authenticated.
 
-    const credential = new InteractiveBrowserCredential({
+    const credential = new (window as any).InteractiveBrowserCredential({
       clientId,
     });
 
@@ -148,7 +155,9 @@ test("Authenticates", async ({ page }) => {
 
     // CHALLENGE (6 of 6):
     // 6. No way to log out.
+  }, {
+    clientId
   });
 
-  server.kill("SIGINT");
+  // server.kill("SIGINT");
 });
