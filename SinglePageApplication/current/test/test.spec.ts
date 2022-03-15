@@ -3,7 +3,7 @@
 
 import {
   AccessToken,
-  AuthorizationCodeCredential,
+  InteractiveBrowserCredential,
   TokenCredential,
 } from "@azure/identity";
 import {
@@ -82,10 +82,6 @@ test("Authenticates", async ({ page }) => {
 
   // We go to the home page
   await page.goto(`${homeUri}/`);
-  await expect(
-    loginResponse.status(),
-    "The home page request should have succeeded"
-  ).toBe(200);
 
   if (clearState) {
     // Create state in the web page
@@ -124,7 +120,7 @@ test("Authenticates", async ({ page }) => {
 
   // TEST LOGIC: Force the redirection
   await page.evaluate(async () => {
-    window.location = `${redirectUri}?code=ASDFASDFASDF`;
+    window.location = `${redirectUri}?code=ASDFASDFASDF` as any;
   });
 
   await page.evaluate(async () => {

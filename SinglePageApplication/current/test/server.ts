@@ -5,7 +5,7 @@ import { AccessToken, TokenCredential } from "@azure/core-auth";
 import * as express from "express";
 import { Server } from "http";
 import * as session from "express-session";
-import fs from "fs";
+import * as fs from "fs";
 
 // A simple web server that allows passing configuration and behavioral parameters.
 // This file should be thought as the archetypicall representation of a web server,
@@ -100,7 +100,7 @@ export async function prepareServer(
    */
   app.get("/", async (req: express.Request, res: express.Response) => {
     const identitySource = fs.readFileSync(
-      "../node_modules/@azure/identity/dist/index.js",
+      "node_modules/@azure/identity/dist/index.js",
       { encoding: "utf8" }
     );
     res.send(`
@@ -121,7 +121,7 @@ export async function prepareServer(
     "/azureResponse",
     async (req: express.Request, res: express.Response) => {
       const identitySource = fs.readFileSync(
-        "../node_modules/@azure/identity/dist/index.js",
+        "node_modules/@azure/identity/dist/index.js",
         { encoding: "utf8" }
       );
       res.send(`
