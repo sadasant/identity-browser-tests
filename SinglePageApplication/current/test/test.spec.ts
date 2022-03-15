@@ -117,7 +117,12 @@ test("Authenticates", async ({ page }) => {
   });
 
   // Waiting for redirection...
-  await page.waitForNavigation({ url: '**/azureResponse' });
+  await page.waitForNavigation({ url: '**/authorize' });
+
+  // TEST LOGIC: Force the redirection
+  await page.evaluate(async () => {
+    window.location = `${redirectUri}?code=ASDFASDFASDF`;
+  });
 
   await page.evaluate(async () => {
     // CHALLENGE (2 of 6):
@@ -139,7 +144,9 @@ test("Authenticates", async ({ page }) => {
     const credential = new InteractiveBrowserCredential({
       clientId
     });
-    const token = await credential.getToken(scope);
+
+    // TODO: Mock this on the browser.
+    // const token = await credential.getToken(scope);
 
     // CHALLENGE (5 of 6):
     // 5. No "state" parameter.
