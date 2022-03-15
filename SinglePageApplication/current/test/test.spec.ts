@@ -68,7 +68,7 @@ test("Authenticates", async ({ page }) => {
     stop,
   } = await prepareServer({ serverSecret, port });
 
- await start();
+  await start();
 
   // Log and continue all network requests
   await page.route("**", (route) => {
@@ -82,7 +82,10 @@ test("Authenticates", async ({ page }) => {
 
   // We go to the home page
   await page.goto(`${homeUri}/`);
-  await expect(loginResponse.status(), "The home page request should have succeeded").toBe(200);
+  await expect(
+    loginResponse.status(),
+    "The home page request should have succeeded"
+  ).toBe(200);
 
   if (clearState) {
     // Create state in the web page
@@ -96,8 +99,8 @@ test("Authenticates", async ({ page }) => {
     if (!window.localStorage.pageState) {
       window.localStorage.page = {
         steps: 0,
-        timeout: 1000
-      }
+        timeout: 1000,
+      };
     }
     setTimeout(() => {
       window.localStorage.page.steps += 1;
@@ -112,12 +115,12 @@ test("Authenticates", async ({ page }) => {
       // 1. `loginStyle` changes authentication drastically.
       // // loginStyle: "popup"
     });
-   
+
     credential.getToken(scope);
   });
 
   // Waiting for redirection...
-  await page.waitForNavigation({ url: '**/authorize' });
+  await page.waitForNavigation({ url: "**/authorize" });
 
   // TEST LOGIC: Force the redirection
   await page.evaluate(async () => {
@@ -142,7 +145,7 @@ test("Authenticates", async ({ page }) => {
     // (apparently) the only user authenticated.
 
     const credential = new InteractiveBrowserCredential({
-      clientId
+      clientId,
     });
 
     // TODO: Mock this on the browser.

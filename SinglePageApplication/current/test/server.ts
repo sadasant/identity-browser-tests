@@ -98,11 +98,12 @@ export async function prepareServer(
   /**
    * Home page
    */
-  app.get(
-    "/",
-    async (req: express.Request, res: express.Response) => {
-      const identitySource = fs.readFileSync("../node_modules/@azure/identity/dist/index.js", { encoding: "utf8" });
-      res.send(`
+  app.get("/", async (req: express.Request, res: express.Response) => {
+    const identitySource = fs.readFileSync(
+      "../node_modules/@azure/identity/dist/index.js",
+      { encoding: "utf8" }
+    );
+    res.send(`
 <html>
   <head>
     <script>${identitySource}</script>
@@ -110,9 +111,8 @@ export async function prepareServer(
   <body>
   </body>
 </html>
-`)
-    }
-  );
+`);
+  });
 
   /**
    * Azure Redirect
@@ -120,7 +120,10 @@ export async function prepareServer(
   app.get(
     "/azureResponse",
     async (req: express.Request, res: express.Response) => {
-      const identitySource = fs.readFileSync("../node_modules/@azure/identity/dist/index.js", { encoding: "utf8" });
+      const identitySource = fs.readFileSync(
+        "../node_modules/@azure/identity/dist/index.js",
+        { encoding: "utf8" }
+      );
       res.send(`
 <html>
   <head>
@@ -129,10 +132,10 @@ export async function prepareServer(
   <body>
   </body>
 </html>
-`)
+`);
     }
   );
- 
+
   let server: Server | undefined = undefined;
 
   return {
