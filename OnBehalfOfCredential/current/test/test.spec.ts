@@ -29,8 +29,8 @@ dotenv.config();
 //     <explanation-of-the-challenge>
 //
 // Challenges:
-// 1. No API to get the authorize URI.
-// 2. `loginStyle` changes authentication drastically.
+// 1. `loginStyle` changes authentication drastically.
+// 2. No "state" parameter.
 // 3. How to handle multiple users in the browser?
 // 4. No way to log out.
 // 5. No sample using browser authentication and then using the `OnBehalfOfCredential`.
@@ -77,8 +77,6 @@ test("Authenticates", async ({ page }) => {
       const username = extractUsername(req);
       checkLoggedIn(username);
 
-      // CHALLENGE (5 of 5):
-      // How to recover a credential in the future?
       const token = extractToken(username);
 
       const request = createPipelineRequest({
@@ -129,6 +127,24 @@ test("Authenticates", async ({ page }) => {
     setTimeout(() => {
       window.localStorage.page.steps += 1;
     }, window.localStorage.page.timeout);
+  });
+
+  // Authenticate
+  await page.evaluate(() => {
+    const credential = new InteractiveBrowserCredential({
+      clientId,
+      // CHALLENGE (1 of 6):
+      // 1. `loginStyle` changes authentication drastically.
+      // // loginStyle: "popup"
+    });
+
+    // CHALLENGE (2 of 6):
+    // 2. No "state" parameter.
+    // `getToken` will route to the Azure page that authenticates,
+    // and after we come back from the redirection,
+    // we won't be able to know at what step of the "state"
+    // the redirection happened.
+    credential.getToken(scope)
   });
 
   await stop();
