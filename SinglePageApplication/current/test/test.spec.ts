@@ -13,11 +13,12 @@ import {
 } from "@azure/core-rest-pipeline";
 import { delay } from "@azure/core-util";
 import { test, expect } from "@playwright/test";
-import { prepareServer } from "./server";
 import { credentialWrapper, sendRequest } from "./wrappers";
 import { getAuthorizeUrl } from "./utils";
 import * as express from "express";
 import * as dotenv from "dotenv";
+import * as childProcess from "child_process";
+import * as path from "path";
 
 dotenv.config();
 
@@ -54,21 +55,12 @@ const clearState = process.env.CLEAR_STATE;
 
 // The Azure Active Directory app registration should be of the type
 // "web" and the redirect endpoint should point to:
-const redirectUri = `${protocol}://${host}:${port}/azureResponse`;
+const redirectUri = `${protocol}://${host}:${port}/`;
 
 test("Authenticates", async ({ page }) => {
-  const {
-    app,
-    database,
-    extractUsername,
-    extractToken,
-    checkLoggedIn,
-    saveAzureState,
-    start,
-    stop,
-  } = await prepareServer({ serverSecret, port });
-
-  await start();
+  const webpackPath = path.resolve("./webpack");
+  console.log({ webpackPath });
+  const server = childProcess.spawn("npm start", { cwd: webpackPath });
 
   // Log and continue all network requests
   await page.route("**", (route) => {
@@ -158,5 +150,5 @@ test("Authenticates", async ({ page }) => {
     // 6. No way to log out.
   });
 
-  await stop();
+  server.kill("SIGINT");
 });
