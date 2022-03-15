@@ -50,6 +50,7 @@ const homeUri = `http://localhost:${port}`;
 const authorizeHost =
   process.env.AUTHORIZE_HOST ||
   `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0`;
+const clearState = process.env.CLEAR_STATE;
 
 // The Azure Active Directory app registration should be of the type
 // "web" and the redirect endpoint should point to:
@@ -106,22 +107,29 @@ test("Authenticates", async ({ page }) => {
 
   const username = "testuser";
 
-  // Authenticates on the test server
-  const loginResponse = await page.goto(
-    `${homeUri}/login?username=${username}`
-  );
-  await expect(loginResponse.status(), "Login should have succeeded").toBe(200);
-  await expect(
-    database[username].loggedIn,
-    "Database should report the user has logged in"
-  ).toBeTruthy();
+  // We go to the home page
+  await page.goto(`${homeUri}/`);
+  await expect(loginResponse.status(), "The home page request should have succeeded").toBe(200);
 
-  // Authenticates on the test server
-  await page.goto(`${homeUri}/azureLogin`);
+  if (clearState) {
+    // Create state in the web page
+    await page.evaluate(() => {
+      window.localStorage.page = undefined;
+    });
+  }
 
-  // Once authenticated, makes an authenticated call to Azure.
-  const result = await page.goto(`${homeUri}/me`);
-  console.log(await result.text());
+  // Create state in the web page
+  await page.evaluate(() => {
+    if (!window.localStorage.pageState) {
+      window.localStorage.page = {
+        steps: 0,
+        timeout: 1000
+      }
+    }
+    setTimeout(() => {
+      window.localStorage.page.steps += 1;
+    }, window.localStorage.page.timeout);
+  });
 
   await stop();
 });

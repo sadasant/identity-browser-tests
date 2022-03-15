@@ -129,21 +129,20 @@ export async function prepareServer(
       };
     }
 
-    /**
-     * Fake version of the Azure interactive authentication service
-     */
-    app.get(
-      "/authorize",
-      async (req: express.Request, res: express.Response) => {
-        const state = req.query["state"];
-        res.redirect(`/azureResponse?code=CODE&state=${state}`);
-      }
-    );
-
     database[username].loggedIn = true;
     res.sendStatus(200);
   });
 
+  /**
+   * Home page
+   */
+  app.get(
+    "/",
+    async (req: express.Request, res: express.Response) => {
+      res.sendStatus(200);
+    }
+  );
+ 
   let server: Server | undefined = undefined;
 
   return {
