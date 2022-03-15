@@ -30,11 +30,11 @@ dotenv.config();
 //
 // Challenges:
 // 1. `loginStyle` changes authentication drastically.
-// 2. No "state" parameter.
-// 3. No sample showcasing the scope the browser credential must use for the On-Behalf-Of-Flow.
-// 4. It might be weird that getToken completely obliterates the currently running program (by redirecting).
-// 5. After redirection, the credential retrieves the code from the URL, which might be confusing since this is hidden from the user.
-// 6. How to handle multiple users in the browser?
+// 2. No sample showcasing the scope the browser credential must use for the On-Behalf-Of-Flow.
+// 3. It might be weird that getToken completely obliterates the currently running program (by redirecting).
+// 4. After redirection, the credential retrieves the code from the URL, which might be confusing since this is hidden from the user.
+// 5. How to handle multiple users in the browser?
+// 6. No "state" parameter.
 // 7. No way to log out.
 // 8. No sample using browser authentication and then using the `OnBehalfOfCredential`.
 
@@ -138,40 +138,44 @@ test("Authenticates", async ({ page }) => {
       // 1. `loginStyle` changes authentication drastically.
       // // loginStyle: "popup"
     });
-
-    // CHALLENGE (2 of 8):
-    // 2. No "state" parameter.
-    // `getToken` will route to the Azure page that authenticates,
-    // and after we come back from the redirection,
-    // we won't be able to know at what step of the "state"
-    // the redirection happened.
-    
+   
     // CHALLENGE (3 of 8):
-    // 3. No sample showcasing the scope the browser credential
+    // 2. No sample showcasing the scope the browser credential
     // must use for the On-Behalf-Of-Flow.
-
-    // CHALLENGE (4 of 8):
-    // 4. It might be weird that getToken completely obliterates
-    // the currently running program (by redirecting).
-
     credential.getToken(`api://${clientId}/Read`)
   });
 
   // Waiting for redirection...
   await page.waitForNavigation({ url: '**/azureResponse' })
 
-  await page.evaluate(() => {
+  await page.evaluate(async () => {
+    // CHALLENGE (4 of 8):
+    // 3. It might be weird that getToken completely obliterates
+    // the currently running program (by redirecting).
+
     // CHALLENGE (5 of 8):
-    // 5. After redirection, the credential retrieves
+    // 4. After redirection, the credential retrieves
     // the code from the URL, which might be confusing
     // since this is hidden from the user.
 
     // CHALLENGE (6 of 8):
-    // 6. How to handle multiple users in the browser?
+    // 5. How to handle multiple users in the browser?
     // At the moment, there's now way to know what user authenticated,
     // and how to manage multiple users over time.
     // Every time one authenticates, that user becomes
     // (apparently) the only user authenticated.
+
+    const credential = new InteractiveBrowserCredential({
+      clientId
+    });
+    const token = await credential.getToken(`api://${clientId}/Read`)
+
+    // CHALLENGE (2 of 8):
+    // 6. No "state" parameter.
+    // `getToken` will route to the Azure page that authenticates,
+    // and after we come back from the redirection,
+    // we won't be able to know at what step of the "state"
+    // the redirection happened.
   });
 
   await stop();
