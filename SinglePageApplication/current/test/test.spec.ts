@@ -80,12 +80,12 @@ test("Authenticates", async ({ page }) => {
 
   // THE TEST BEGINS
   
-  // await delay(20000);
-
-  const username = "testuser";
-
   // We go to the home page
   await page.goto(homeUri);
+
+  // TODO: Load the library bundle.
+  // TODO: Set the proxy to redirect back.
+  // TODO: Use authorityHost: proxy.
 
   console.log(await page.content());
   // Create state in the web page
@@ -103,6 +103,7 @@ test("Authenticates", async ({ page }) => {
   await page.evaluate(({ clientId }) => {
     console.log("State steps:", window.localStorage.steps);
     console.log("Credential:", (window as any).InteractiveBrowserCredential);
+    console.log("Credential:", (window as any).identity);
     window.onload = () => {
       const credential = new (window as any).InteractiveBrowserCredential({
         clientId,
