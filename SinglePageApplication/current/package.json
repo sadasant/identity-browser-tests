@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "format": "prettier --write '*.(ts|js|json)' 'test/*.(ts|js|json)'",
-    "pretest": "rm -fr dist/* && tsc -p tsconfig.json",
+    "pretest": "rm -fr dist/* && tsc -p tsconfig.json && webpack",
     "test": "playwright test -c dist"
   },
   "author": "",
@@ -24,6 +24,7 @@
     "@azure/identity": "^2.0.4",
     "express": "^4.17.3",
     "express-session": "^1.17.2",
-    "prettier": "^2.5.1"
+    "prettier": "^2.5.1",
+    "webpack": "^5.70.0"
   }
 }

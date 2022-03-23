@@ -12,6 +12,7 @@ import {
 } from "@azure/core-rest-pipeline";
 import { delay } from "@azure/core-util";
 import { test, expect } from "@playwright/test";
+import { prepareServer } from "./server";
 import { credentialWrapper, sendRequest } from "./wrappers";
 import { getAuthorizeUrl } from "./utils";
 import * as express from "express";
@@ -57,11 +58,11 @@ const clearState = process.env.CLEAR_STATE;
 const redirectUri = `${protocol}://${host}:${port}/index`;
 
 test("Authenticates", async ({ page }) => {
-  // const webpackPath = path.resolve("./webpack");
-  // console.log({ webpackPath });
-  // const server = childProcess.spawn("npm", ["start"], { cwd: webpackPath });
-  // server.stdout.pipe(process.stdout);
-  // server.stderr.pipe(process.stderr);
+  const {
+    app,
+    start,
+    stop,
+  } = await prepareServer({ serverSecret, port });
 
   // Log and continue all network requests
   await page.route("**", (route) => {
@@ -78,16 +79,19 @@ test("Authenticates", async ({ page }) => {
     console.log(...values);
   });
 
+  await start();
+
   // THE TEST BEGINS
   
   // We go to the home page
   await page.goto(homeUri);
 
-  // TODO: Load the library bundle.
-  // TODO: Set the proxy to redirect back.
-  // TODO: Use authorityHost: proxy.
+  // Load the library bundle.
+  await page.evaluate(() => {
+    const script = document.createElement("script");
+    script.setAttribute("src", "/index.js");
+  });
 
-  console.log(await page.content());
   // Create state in the web page
   await page.evaluate(() => {
     window.localStorage.steps = 0
@@ -96,24 +100,22 @@ test("Authenticates", async ({ page }) => {
     }, 100);
   });
 
-  // Wait until the page loads
-  // await expect(page.locator('h1')).toHaveText('Azure SDK Browser Manual Tests');
-
   // Authenticate
-  await page.evaluate(({ clientId }) => {
+  await page.evaluate(({ clientId, protocol, host, port }) => {
     console.log("State steps:", window.localStorage.steps);
     console.log("Credential:", (window as any).InteractiveBrowserCredential);
     console.log("Credential:", (window as any).identity);
     window.onload = () => {
       const credential = new (window as any).InteractiveBrowserCredential({
         clientId,
+        authorityHost: `${protocol}://${host}:${port}`
         // CHALLENGE (1 of 6):
         // 1. `loginStyle` changes authentication drastically.
         // // loginStyle: "popup"
       });
       credential.getToken(scope);
     }
-  }, { clientId });
+  }, { clientId, protocol, host, port });
 
   // Waiting for redirection...
   await page.waitForNavigation({ url: "**/authorize" });
@@ -160,5 +162,5 @@ test("Authenticates", async ({ page }) => {
     clientId
   });
 
-  // server.kill("SIGINT");
+  await stop();
 });
