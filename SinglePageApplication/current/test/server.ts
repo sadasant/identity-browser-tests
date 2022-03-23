@@ -56,11 +56,6 @@ export interface ServerOptions {
  */
 export interface PepareServerResult {
   app: express.Application;
-  database: Record<string, UserState>;
-  extractUsername: (req: express.Request) => string;
-  checkLoggedIn: (username: string) => void;
-  extractToken: (username: string) => string;
-  saveAzureState: (username: string, options: AzureState) => void;
   start: () => Promise<void>;
   stop: () => Promise<void>;
 }
@@ -96,12 +91,23 @@ export async function prepareServer(
   );
 
   /**
-   * Fake version of the Azure interactive authentication service
+   * Endpoint that loads the index.js
    */
   app.get(
     "/index.js",
     async (req: express.Request, res: express.Response) => {
-      res.send(readFileSync("../dist/index.js", { encoding: "utf8" }));
+      const indexContent = readFileSync("./dist/index.js", { encoding: "utf8" });
+      res.send(indexContent);
+    }
+  );
+
+  /**
+   * Home URI
+   */
+  app.get(
+    "/index",
+    async (req: express.Request, res: express.Response) => {
+      res.sendStatus(200);
     }
   );
  

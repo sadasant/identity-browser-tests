@@ -1,3 +1,5 @@
-const { InteractiveBrowserCredential } = require("@azure/identity");
+const identity = require("@azure/identity");
 
-window.InteractiveBrowserCredential = InteractiveBrowserCredential;
+console.log("WEBPACK LOADED", identity);
+
+window.InteractiveBrowserCredential = identity.InteractiveBrowserCredential;

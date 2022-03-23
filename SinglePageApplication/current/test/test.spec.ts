@@ -86,25 +86,28 @@ test("Authenticates", async ({ page }) => {
   // We go to the home page
   await page.goto(homeUri);
 
-  // Load the library bundle.
-  await page.evaluate(() => {
-    const script = document.createElement("script");
-    script.setAttribute("src", "/index.js");
-  });
-
   // Create state in the web page
   await page.evaluate(() => {
     window.localStorage.steps = 0
     setTimeout(() => {
-      window.localStorage.steps += 1;
+      window.localStorage.steps = Number(window.localStorage.steps) + 1;
     }, 100);
   });
+ 
+  await page.evaluate(() => {
+    // Load the library bundle.
+    const script = document.createElement("script");
+    script.setAttribute("src", "/index.js");
+    script.async = false;
+    document.body.appendChild(script);
+  });
 
-  // Authenticate
+  await delay(1000);
+
   await page.evaluate(({ clientId, protocol, host, port }) => {
     console.log("State steps:", window.localStorage.steps);
     console.log("Credential:", (window as any).InteractiveBrowserCredential);
-    console.log("Credential:", (window as any).identity);
+    // Authenticate
     window.onload = () => {
       const credential = new (window as any).InteractiveBrowserCredential({
         clientId,
@@ -117,15 +120,19 @@ test("Authenticates", async ({ page }) => {
     }
   }, { clientId, protocol, host, port });
 
-  // Waiting for redirection...
-  await page.waitForNavigation({ url: "**/authorize" });
-
   // TEST LOGIC: Force the redirection
   await page.evaluate(async ({ redirectUri }) => {
     window.location = `${redirectUri}?code=ASDFASDFASDF` as any;
   }, { redirectUri });
 
   await page.evaluate(async ({ clientId }) => {
+    // Load the library bundle.
+    const script = document.createElement("script");
+    script.setAttribute("src", "/index.js");
+    script.async = false;
+    document.body.appendChild(script);
+    console.log("Credential:", (window as any).InteractiveBrowserCredential);
+
     // CHALLENGE (2 of 6):
     // 2. It might be weird that getToken completely obliterates
     // the currently running program (by redirecting).
