@@ -96,7 +96,7 @@ export async function prepareServer(
   app.get(
     "/index.js",
     async (req: express.Request, res: express.Response) => {
-      const indexContent = readFileSync("./dist/index.js", { encoding: "utf8" });
+      const indexContent = readFileSync("./webpack/dist/index.js", { encoding: "utf8" });
       res.send(indexContent);
     }
   );
@@ -107,7 +107,8 @@ export async function prepareServer(
   app.get(
     "/index",
     async (req: express.Request, res: express.Response) => {
-      res.sendStatus(200);
+      const indexContent = readFileSync("./index.html", { encoding: "utf8" });
+      res.send(indexContent);
     }
   );
  

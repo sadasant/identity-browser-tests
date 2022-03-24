@@ -94,16 +94,6 @@ test("Authenticates", async ({ page }) => {
     }, 100);
   });
  
-  await page.evaluate(() => {
-    // Load the library bundle.
-    const script = document.createElement("script");
-    script.setAttribute("src", "/index.js");
-    script.async = false;
-    document.body.appendChild(script);
-  });
-
-  await delay(1000);
-
   await page.evaluate(({ clientId, protocol, host, port }) => {
     console.log("State steps:", window.localStorage.steps);
     console.log("Credential:", (window as any).InteractiveBrowserCredential);
@@ -119,6 +109,8 @@ test("Authenticates", async ({ page }) => {
       credential.getToken(scope);
     }
   }, { clientId, protocol, host, port });
+
+  await delay(5000);
 
   // TEST LOGIC: Force the redirection
   await page.evaluate(async ({ redirectUri }) => {
