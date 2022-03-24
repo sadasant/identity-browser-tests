@@ -1,22 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import * as express from "express";
 import * as dotenv from "dotenv";
-import * as childProcess from "child_process";
-import * as path from "path";
-import { AccessToken, TokenCredential } from "@azure/identity";
-import {
-  createDefaultHttpClient,
-  createHttpHeaders,
-  createPipelineRequest,
-} from "@azure/core-rest-pipeline";
-import { delay } from "@azure/core-util";
-import { test, expect } from "@playwright/test";
+import { test } from "@playwright/test";
 import { prepareServer } from "./server";
 import { preparePage } from "./page";
-import { credentialWrapper, sendRequest } from "./wrappers";
-import { getAuthorizeUrl } from "./utils";
 
 dotenv.config();
 
@@ -49,7 +37,6 @@ const homeUri = `http://localhost:${port}/index`;
 const authorizeHost =
   process.env.AUTHORIZE_HOST ||
   `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0`;
-const clearState = process.env.CLEAR_STATE;
 
 // The Azure Active Directory app registration should be of the type
 // "web" and the redirect endpoint should point to:
@@ -79,21 +66,23 @@ test("Authenticates", async ({ page }) => {
     ({ clientId, protocol, host, port, scope }) => {
       console.log("State steps:", window.localStorage.steps);
 
-      const { createCredential } = window as any;
-      const credential = createCredential({
+      const { newInteractiveBrowserCredential } = window as any;
+
+      const credential = newInteractiveBrowserCredential({
         clientId,
         authorityHost: `${protocol}://${host}:${port}`,
         // CHALLENGE (1 of 6):
-        // 1. `loginStyle` changes authentication drastically.
+        // `loginStyle` changes authentication drastically.
         // // loginStyle: "popup"
       });
+
       console.log("CREDENTIAL", typeof credential);
-      credential.getToken(scope);
+      credential.getToken(scope); // The redirection to Azure happens here...
     },
     { clientId, protocol, host, port, scope }
   );
 
-  // TEST LOGIC: Force the redirection
+  // TEST LOGIC: Force the redirection back to our home URI
   await page.evaluate(
     ({ homeUri }) => {
       window.location = `${homeUri}?code=ASDFASDFASDF` as any;
@@ -108,32 +97,33 @@ test("Authenticates", async ({ page }) => {
       function delay(timeInMs): Promise<void> {
         return new Promise((resolve) => setTimeout(() => resolve(), timeInMs));
       }
-      while (!(window as any).createCredential) {
+      while (!(window as any).newInteractiveBrowserCredential) {
         await delay(100);
       }
-      const { createCredential, credentialWrapper } = window as any;
+      const { newInteractiveBrowserCredential, credentialWrapper } =
+        window as any;
 
       // CHALLENGE (2 of 6):
-      // 2. It might be weird that getToken completely obliterates
+      // It might be weird that getToken completely obliterates
       // the currently running program (by redirecting).
 
       // CHALLENGE (3 of 6):
-      // 3. After redirection, the credential retrieves
+      // After redirection, the credential retrieves
       // the code from the URL, which might be confusing
       // since this is hidden from the user.
 
       // CHALLENGE (4 of 6):
-      // 4. How to handle multiple users in the browser?
+      // How to handle multiple users in the browser?
       // At the moment, there's now way to know what user authenticated,
       // and how to manage multiple users over time.
       // Every time one authenticates, that user becomes
       // (apparently) the only user authenticated.
 
-      const credential = createCredential({
+      const credential = newInteractiveBrowserCredential({
         clientId,
         authorityHost: `${protocol}://${host}:${port}`,
         // CHALLENGE (1 of 6):
-        // 1. `loginStyle` changes authentication drastically.
+        // `loginStyle` changes authentication drastically.
         // // loginStyle: "popup"
       });
       console.log("CREDENTIAL", typeof credential);
@@ -141,14 +131,14 @@ test("Authenticates", async ({ page }) => {
       console.log("TOKEN", typeof credential);
 
       // CHALLENGE (5 of 6):
-      // 5. No "state" parameter.
+      // No "state" parameter.
       // `getToken` will route to the Azure page that authenticates,
       // and after we come back from the redirection,
       // we won't be able to know at what step of the "state"
       // the redirection happened.
 
       // CHALLENGE (6 of 6):
-      // 6. No way to log out.
+      // No way to log out.
     },
     { clientId, protocol, host, port, scope }
   );

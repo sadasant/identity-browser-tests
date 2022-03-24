@@ -3,7 +3,7 @@
 
 import { InteractiveBrowserCredential } from "@azure/identity";
 
-window.createCredential = (...params) => {
+window.newInteractiveBrowserCredential = (...params) => {
   try {
     return new InteractiveBrowserCredential(...params);
   } catch(e) {
