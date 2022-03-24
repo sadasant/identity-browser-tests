@@ -93,25 +93,21 @@ export async function prepareServer(
   /**
    * Endpoint that loads the index.js
    */
-  app.get(
-    "/index.js",
-    async (req: express.Request, res: express.Response) => {
-      const indexContent = readFileSync("./webpack/dist/index.js", { encoding: "utf8" });
-      res.send(indexContent);
-    }
-  );
+  app.get("/index.js", async (req: express.Request, res: express.Response) => {
+    const indexContent = readFileSync("./rollup/dist/index.js", {
+      encoding: "utf8",
+    });
+    res.send(indexContent);
+  });
 
   /**
    * Home URI
    */
-  app.get(
-    "/index",
-    async (req: express.Request, res: express.Response) => {
-      const indexContent = readFileSync("./index.html", { encoding: "utf8" });
-      res.send(indexContent);
-    }
-  );
- 
+  app.get("/index", async (req: express.Request, res: express.Response) => {
+    const indexContent = readFileSync("./index.html", { encoding: "utf8" });
+    res.send(indexContent);
+  });
+
   let server: Server | undefined = undefined;
 
   return {
