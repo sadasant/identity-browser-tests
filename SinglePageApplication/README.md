@@ -147,7 +147,7 @@ async function authenticate(): boolean {
     return true;
   } catch(e) {
     if (e.name === "AuthenticationRequiredError") {
-      await credential.authenticate({ state });
+      await credential.authenticate(scope, { state });
       // Redirect happens.
     }
     return false;
@@ -181,7 +181,7 @@ async function authenticate(): boolean {
     return true;
   } catch(e) {
     if (e.name === "AuthenticationRequiredError") {
-      await credential.authenticate({ state });
+      await credential.authenticate(scope, { state });
       // Redirect happens.
     }
     return false;

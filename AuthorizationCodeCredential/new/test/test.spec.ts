@@ -23,10 +23,8 @@ import { WebRedirectCredential } from "@azure/identity-web";
 dotenv.config();
 
 // This test shows how to authenticate a Node.js web server using
-// the new proposed `WebRedirectCredential`.
-//
-// The package `@azure/identity-web` is hosted here:
-// <link to branch>
+// the new proposed `WebRedirectCredential`, from the proposed package `@azure/identity-web`,
+// hosted here: https://github.com/Azure/azure-sdk-for-js/pull/20772
 //
 // At the root of the `new` folder, we have a copy of the generated
 // tar.gz of this package.
