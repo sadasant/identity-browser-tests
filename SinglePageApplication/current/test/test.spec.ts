@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
+import * as express from "express";
+import * as dotenv from "dotenv";
+import * as childProcess from "child_process";
+import * as path from "path";
 import { AccessToken, TokenCredential } from "@azure/identity";
 import {
   createDefaultHttpClient,
@@ -10,12 +14,9 @@ import {
 import { delay } from "@azure/core-util";
 import { test, expect } from "@playwright/test";
 import { prepareServer } from "./server";
+import { preparePage } from "./page";
 import { credentialWrapper, sendRequest } from "./wrappers";
 import { getAuthorizeUrl } from "./utils";
-import * as express from "express";
-import * as dotenv from "dotenv";
-import * as childProcess from "child_process";
-import * as path from "path";
 
 dotenv.config();
 
@@ -57,20 +58,7 @@ const redirectUri = `${protocol}://${host}:${port}/index`;
 test("Authenticates", async ({ page }) => {
   const { app, start, stop } = await prepareServer({ serverSecret, port });
 
-  // Log and continue all network requests
-  await page.route("**", (route) => {
-    console.log("ROUTE:", route.request().url());
-    route.continue();
-  });
-
-  // Logging the page's console.logs
-  page.on("console", async (msg) => {
-    const values = [];
-    for (const arg of msg.args()) {
-      values.push(await arg.jsonValue());
-    }
-    console.log(...values);
-  });
+  await preparePage(page);
 
   await start();
 
@@ -90,7 +78,9 @@ test("Authenticates", async ({ page }) => {
   await page.evaluate(
     ({ clientId, protocol, host, port, scope }) => {
       console.log("State steps:", window.localStorage.steps);
-      const credential = (window as any).createCredential({
+
+      const { createCredential } = window as any;
+      const credential = createCredential({
         clientId,
         authorityHost: `${protocol}://${host}:${port}`,
         // CHALLENGE (1 of 6):
@@ -121,6 +111,7 @@ test("Authenticates", async ({ page }) => {
       while (!(window as any).createCredential) {
         await delay(100);
       }
+      const { createCredential, credentialWrapper } = window as any;
 
       // CHALLENGE (2 of 6):
       // 2. It might be weird that getToken completely obliterates
@@ -138,7 +129,7 @@ test("Authenticates", async ({ page }) => {
       // Every time one authenticates, that user becomes
       // (apparently) the only user authenticated.
 
-      const credential = (window as any).createCredential({
+      const credential = createCredential({
         clientId,
         authorityHost: `${protocol}://${host}:${port}`,
         // CHALLENGE (1 of 6):
@@ -146,7 +137,8 @@ test("Authenticates", async ({ page }) => {
         // // loginStyle: "popup"
       });
       console.log("CREDENTIAL", typeof credential);
-      // const token = await credential.getToken(scope);
+      const token = await credentialWrapper(credential).getToken(scope);
+      console.log("TOKEN", typeof credential);
 
       // CHALLENGE (5 of 6):
       // 5. No "state" parameter.
