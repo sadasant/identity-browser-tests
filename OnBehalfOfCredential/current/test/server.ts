@@ -3,9 +3,9 @@
 
 import { AccessToken, TokenCredential } from "@azure/core-auth";
 import * as express from "express";
+import { readFileSync } from "fs";
 import { Server } from "http";
 import * as session from "express-session";
-import fs from "fs";
 
 // A simple web server that allows passing configuration and behavioral parameters.
 // This file should be thought as the archetypicall representation of a web server,
@@ -135,43 +135,31 @@ export async function prepareServer(
   });
 
   /**
-   * Home page
+   * Fake version of the Azure interactive authentication service
    */
-  app.get(
-    "/",
-    async (req: express.Request, res: express.Response) => {
-      const identitySource = fs.readFileSync("../node_modules/@azure/identity/dist/index.js", { encoding: "utf8" });
-      res.send(`
-<html>
-  <head>
-    <script>${identitySource}</script>
-  </head>
-  <body>
-  </body>
-</html>
-`)
-    }
-  );
+  app.get("/authorize", async (req: express.Request, res: express.Response) => {
+    const state = req.query["state"];
+    res.redirect(`/azureResponse?code=CODE&state=${state}`);
+  });
 
   /**
-   * Azure Redirect
+   * Endpoint that loads the index.js
    */
-  app.get(
-    "/azureResponse",
-    async (req: express.Request, res: express.Response) => {
-      const identitySource = fs.readFileSync("../node_modules/@azure/identity/dist/index.js", { encoding: "utf8" });
-      res.send(`
-<html>
-  <head>
-    <script>${identitySource}</script>
-  </head>
-  <body>
-  </body>
-</html>
-`)
-    }
-  );
- 
+  app.get("/index.js", async (req: express.Request, res: express.Response) => {
+    const indexContent = readFileSync("./rollup/dist/index.js", {
+      encoding: "utf8",
+    });
+    res.send(indexContent);
+  });
+
+  /**
+   * Home URI
+   */
+  app.get("/index", async (req: express.Request, res: express.Response) => {
+    const indexContent = readFileSync("./index.html", { encoding: "utf8" });
+    res.send(indexContent);
+  });
+
   let server: Server | undefined = undefined;
 
   return {

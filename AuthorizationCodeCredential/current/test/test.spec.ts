@@ -1,23 +1,18 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {
-  AccessToken,
-  AuthorizationCodeCredential,
-  TokenCredential,
-} from "@azure/identity";
+import * as dotenv from "dotenv";
+import * as express from "express";
+import { test, expect } from "@playwright/test";
+import { AuthorizationCodeCredential } from "@azure/identity";
 import {
   createDefaultHttpClient,
   createHttpHeaders,
   createPipelineRequest,
 } from "@azure/core-rest-pipeline";
-import { delay } from "@azure/core-util";
-import { test, expect } from "@playwright/test";
 import { prepareServer } from "./server";
 import { credentialWrapper, sendRequest } from "./wrappers";
 import { getAuthorizeUrl } from "./utils";
-import * as express from "express";
-import * as dotenv from "dotenv";
 
 dotenv.config();
 
@@ -31,8 +26,8 @@ dotenv.config();
 // Challenges:
 // 1. No API to get the authorize URI.
 // 2. No notion of the "state" parameter.
-// 3. How to tie Azure credentials with web service user.
-// 4. Save a credential for future requests.
+// 3. How to tie Azure credentials with web service user?
+// 4. How to save a credential for future requests?
 // 5. How to recover a credential in the future?
 //
 // Not in this document:
