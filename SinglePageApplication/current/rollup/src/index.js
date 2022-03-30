@@ -1,15 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { InteractiveBrowserCredential } from "@azure/identity";
-
-window.newInteractiveBrowserCredential = (...params) => {
-  try {
-    return new InteractiveBrowserCredential(...params);
-  } catch(e) {
-    console.log("ERROR", e.message);
-  }
-}
+export { InteractiveBrowserCredential } from "@azure/identity";
 
 window.credentialWrapper = credential => ({
   async getToken(scopes) {

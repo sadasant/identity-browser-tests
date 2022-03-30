@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "format": "prettier --write '*.(ts|js|json)' 'test/*.(ts|js|json)'",
-    "pretest": "rm -fr dist/* && npm run format && tsc -p tsconfig.json && rollup --config",
+    "pretest": "tsc -p tsconfig.json && rollup --config",
     "test": "playwright test -c dist"
   },
   "author": "",

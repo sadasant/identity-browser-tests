@@ -26,12 +26,12 @@ dotenv.config();
 const tenantId = process.env.AZURE_TENANT_ID;
 const clientId = process.env.AZURE_CLIENT_ID;
 const clientSecret = process.env.AZURE_CLIENT_SECRET;
-const serverSecret = process.env.SERVER_SECRET;
+const serverSecret = process.env.SERVER_SECRET || "hello123";
 const azureUsername = process.env.AZURE_USERNAME;
 const azurePassword = process.env.AZURE_PASSWORD;
 const protocol = process.env.PROTOCOL || "http";
 const host = process.env.HOST || "localhost";
-const port = process.env.PORT;
+const port = process.env.PORT || "1337";
 const scope = "https://graph.microsoft.com/.default";
 const homeUri = `http://localhost:${port}/index`;
 const authorizeHost =
@@ -65,10 +65,9 @@ test("Authenticates", async ({ page }) => {
   await page.evaluate(
     ({ clientId, protocol, host, port, scope }) => {
       console.log("State steps:", window.localStorage.steps);
+      const { InteractiveBrowserCredential } = (window as any).main;
 
-      const { newInteractiveBrowserCredential } = window as any;
-
-      const credential = newInteractiveBrowserCredential({
+      const credential = new InteractiveBrowserCredential({
         clientId,
         authorityHost: `${protocol}://${host}:${port}`,
         // CHALLENGE (1 of 6):
