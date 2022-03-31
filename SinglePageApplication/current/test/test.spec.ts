@@ -118,7 +118,7 @@ test("Authenticates", async ({ page }) => {
   }
 
   await page.evaluate(
-    async ({ clientId, protocol, host, port, scope, testMode }) => {
+    async ({ clientId, protocol, host, port, scope, homeUri, testMode }) => {
       const { InteractiveBrowserCredential } = (window as any).main;
 
       // CHALLENGE (2 of 6):
@@ -167,7 +167,7 @@ test("Authenticates", async ({ page }) => {
       // CHALLENGE (6 of 6):
       // No way to log out.
     },
-    { clientId, protocol, host, port, scope, testMode }
+    { clientId, protocol, host, port, scope, homeUri, testMode }
   );
 
   await stop();
