@@ -105,8 +105,6 @@ test("Authenticates", async ({ page }) => {
     await page.click(`input[type="submit"]`);
     await page.waitForSelector(`input[type="submit"]`);
     await page.click(`input[type="submit"]`);
-    // await delay(5000);
-    // await page.screenshot({ path: "screenshot.png" });
     await page.waitForURL(`${homeUri}**`);
   } else {
     await page.evaluate(
