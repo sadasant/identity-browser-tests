@@ -23,9 +23,9 @@ dotenv.config();
 // 5. No "state" parameter.
 // 6. No way to log out.
 
+const testMode = process.env.TEST_MODE;
 const tenantId = process.env.AZURE_TENANT_ID;
 const clientId = process.env.AZURE_CLIENT_ID;
-const clientSecret = process.env.AZURE_CLIENT_SECRET;
 const serverSecret = process.env.SERVER_SECRET;
 const azureUsername = process.env.AZURE_USERNAME;
 const azurePassword = process.env.AZURE_PASSWORD;
@@ -33,14 +33,14 @@ const protocol = process.env.PROTOCOL || "http";
 const host = process.env.HOST || "localhost";
 const port = process.env.PORT;
 const scope = "https://graph.microsoft.com/.default";
-const homeUri = `http://localhost:${port}/index`;
+const homeUri = `http://localhost:${port}/`;
 const authorizeHost =
   process.env.AUTHORIZE_HOST ||
   `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0`;
 
 // The Azure Active Directory app registration should be of the type
 // "web" and the redirect endpoint should point to:
-const redirectUri = `${protocol}://${host}:${port}/index`;
+const redirectUri = `${protocol}://${host}:${port}/`;
 
 test("Authenticates", async ({ page }) => {
   const { app, start, stop } = await prepareServer({ serverSecret, port });
@@ -63,37 +63,63 @@ test("Authenticates", async ({ page }) => {
   });
 
   await page.evaluate(
-    async ({ clientId, protocol, host, port, scope }) => {
+    async ({ clientId, protocol, host, port, scope, homeUri, testMode }) => {
       console.log("State steps:", window.localStorage.steps);
 
       const { InteractiveBrowserCredential } = (window as any).main;
 
       const credential = new InteractiveBrowserCredential({
         clientId,
-        authorityHost: `${protocol}://${host}:${port}`,
+        ...(testMode === "live"
+          ? {
+              redirectUri: homeUri,
+            }
+          : {
+              authorityHost: `${protocol}://${host}:${port}`,
+            }),
         // CHALLENGE (1 of 6):
         // `loginStyle` changes authentication drastically.
         loginStyle: "redirect",
       });
 
-      credential.getToken(scope); // The redirection to Azure happens here...
+      if (testMode === "live") {
+        credential.getToken(scope); // The redirection to Azure happens here...
+      }
     },
-    { clientId, protocol, host, port, scope }
+    { clientId, protocol, host, port, scope, homeUri, testMode }
   );
 
-  // TEST LOGIC: Force the redirection back to our home URI
-  await page.evaluate(
-    ({ homeUri }) => {
-      window.location = `${homeUri}#code=ASDFASDFASDF` as any;
-    },
-    { homeUri }
-  );
+  function delay(timeInMs): Promise<void> {
+    return new Promise((resolve) => setTimeout(() => resolve(), timeInMs));
+  }
+  if (testMode === "live") {
+    await page.waitForNavigation();
+    await page.waitForSelector(`input[type="email"]`);
+    await page.fill(`input[type="email"]`, azureUsername);
+    await page.waitForSelector(`input[type="submit"]`);
+    await page.click(`input[type="submit"]`);
+    await page.waitForLoadState("networkidle");
+    await page.waitForSelector(`input[type="password"]`);
+    await page.fill(`input[type="password"]`, azurePassword);
+    await page.waitForSelector(`input[type="submit"]`);
+    await page.click(`input[type="submit"]`);
+    await page.waitForSelector(`input[type="submit"]`);
+    await page.click(`input[type="submit"]`);
+    // await delay(5000);
+    // await page.screenshot({ path: "screenshot.png" });
+    await page.waitForURL(`${homeUri}**`);
+  } else {
+    await page.evaluate(
+      ({ homeUri }) => {
+        window.location = `${homeUri}#code=ASDFASDFASDF` as any;
+      },
+      { homeUri }
+    );
+  }
 
   await page.evaluate(
-    async ({ clientId, protocol, host, port, scope }) => {
-      const { InteractiveBrowserCredential, credentialWrapper } = (
-        window as any
-      ).main;
+    async ({ clientId, protocol, host, port, scope, testMode }) => {
+      const { InteractiveBrowserCredential } = (window as any).main;
 
       // CHALLENGE (2 of 6):
       // It might be weird that getToken completely obliterates
@@ -113,14 +139,23 @@ test("Authenticates", async ({ page }) => {
 
       const credential = new InteractiveBrowserCredential({
         clientId,
-        authorityHost: `${protocol}://${host}:${port}`,
+        ...(testMode === "live"
+          ? {
+              redirectUri: homeUri,
+            }
+          : {
+              authorityHost: `${protocol}://${host}:${port}`,
+            }),
         // CHALLENGE (1 of 6):
         // `loginStyle` changes authentication drastically.
         loginStyle: "redirect",
       });
       console.log("CREDENTIAL", typeof credential);
-      const token = await credentialWrapper(credential).getToken(scope);
-      console.log("TOKEN", typeof credential);
+
+      if (testMode === "live") {
+        const token = await credential.getToken(scope);
+        console.log("TOKEN", typeof credential);
+      }
 
       // CHALLENGE (5 of 6):
       // No "state" parameter.
@@ -132,7 +167,7 @@ test("Authenticates", async ({ page }) => {
       // CHALLENGE (6 of 6):
       // No way to log out.
     },
-    { clientId, protocol, host, port, scope }
+    { clientId, protocol, host, port, scope, testMode }
   );
 
   await stop();
