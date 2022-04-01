@@ -7,7 +7,7 @@ export default {
   input: "rollup/src/index.js",
   output: {
     file: "rollup/dist/index.js",
-    format: "iife",
+    format: "umd",
     name: "main",
   },
   plugins: [
@@ -16,11 +16,7 @@ export default {
       preferBuiltins: false,
       mainFields: ["module", "browser"],
     }),
-    cjs({
-      namedExports: {
-        events: ["EventEmitter"],
-      },
-    }),
+    cjs(),
     json(),
   ],
 };

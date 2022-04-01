@@ -103,7 +103,7 @@ export async function prepareServer(
   /**
    * Home URI
    */
-  app.get("/index", async (req: express.Request, res: express.Response) => {
+  app.get("/", async (req: express.Request, res: express.Response) => {
     const indexContent = readFileSync("./index.html", { encoding: "utf8" });
     res.send(indexContent);
   });
