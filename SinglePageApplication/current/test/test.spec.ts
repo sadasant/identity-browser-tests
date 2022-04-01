@@ -23,7 +23,6 @@ dotenv.config();
 // 5. No "state" parameter.
 // 6. No way to log out.
 
-const testMode = process.env.TEST_MODE;
 const tenantId = process.env.AZURE_TENANT_ID;
 const clientId = process.env.AZURE_CLIENT_ID;
 const serverSecret = process.env.SERVER_SECRET;
@@ -33,14 +32,19 @@ const protocol = process.env.PROTOCOL || "http";
 const host = process.env.HOST || "localhost";
 const port = process.env.PORT;
 const scope = "https://graph.microsoft.com/.default";
-const homeUri = `http://localhost:${port}/`;
 const authorizeHost =
   process.env.AUTHORIZE_HOST ||
   `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0`;
 
 // The Azure Active Directory app registration should be of the type
-// "web" and the redirect endpoint should point to:
-const redirectUri = `${protocol}://${host}:${port}/`;
+// "spa" and the redirect endpoint should point to:
+const homeUri = `http://localhost:${port}/`;
+
+const testMode = process.env.TEST_MODE;
+const credentialOptions =
+  testMode === "live"
+    ? { redirectUri: homeUri }
+    : { authorityHost: `${protocol}://${host}:${port}` };
 
 test("Authenticates", async ({ page }) => {
   const { app, start, stop } = await prepareServer({ serverSecret, port });
@@ -54,29 +58,13 @@ test("Authenticates", async ({ page }) => {
   // We go to the home page
   await page.goto(homeUri);
 
-  // Create state in the web page
-  await page.evaluate(() => {
-    window.localStorage.steps = 0;
-    setTimeout(() => {
-      window.localStorage.steps = Number(window.localStorage.steps) + 1;
-    }, 100);
-  });
-
   await page.evaluate(
-    async ({ clientId, protocol, host, port, scope, homeUri, testMode }) => {
-      console.log("State steps:", window.localStorage.steps);
-
+    async ({ clientId, scope, credentialOptions, testMode }) => {
       const { InteractiveBrowserCredential } = (window as any).main;
 
       const credential = new InteractiveBrowserCredential({
         clientId,
-        ...(testMode === "live"
-          ? {
-              redirectUri: homeUri,
-            }
-          : {
-              authorityHost: `${protocol}://${host}:${port}`,
-            }),
+        ...credentialOptions,
         // CHALLENGE (1 of 6):
         // `loginStyle` changes authentication drastically.
         loginStyle: "redirect",
@@ -86,13 +74,11 @@ test("Authenticates", async ({ page }) => {
         credential.getToken(scope); // The redirection to Azure happens here...
       }
     },
-    { clientId, protocol, host, port, scope, homeUri, testMode }
+    { clientId, scope, credentialOptions, testMode }
   );
 
-  function delay(timeInMs): Promise<void> {
-    return new Promise((resolve) => setTimeout(() => resolve(), timeInMs));
-  }
   if (testMode === "live") {
+    // Interactive login with Playwright
     await page.waitForNavigation();
     await page.waitForSelector(`input[type="email"]`);
     await page.fill(`input[type="email"]`, azureUsername);
@@ -107,6 +93,7 @@ test("Authenticates", async ({ page }) => {
     await page.click(`input[type="submit"]`);
     await page.waitForURL(`${homeUri}**`);
   } else {
+    // Redirect back with a fake code
     await page.evaluate(
       ({ homeUri }) => {
         window.location = `${homeUri}#code=ASDFASDFASDF` as any;
@@ -116,7 +103,7 @@ test("Authenticates", async ({ page }) => {
   }
 
   await page.evaluate(
-    async ({ clientId, protocol, host, port, scope, homeUri, testMode }) => {
+    async ({ clientId, scope, credentialOptions, testMode }) => {
       const { InteractiveBrowserCredential } = (window as any).main;
 
       // CHALLENGE (2 of 6):
@@ -137,18 +124,11 @@ test("Authenticates", async ({ page }) => {
 
       const credential = new InteractiveBrowserCredential({
         clientId,
-        ...(testMode === "live"
-          ? {
-              redirectUri: homeUri,
-            }
-          : {
-              authorityHost: `${protocol}://${host}:${port}`,
-            }),
+        ...credentialOptions,
         // CHALLENGE (1 of 6):
         // `loginStyle` changes authentication drastically.
         loginStyle: "redirect",
       });
-      console.log("CREDENTIAL", typeof credential);
 
       if (testMode === "live") {
         const token = await credential.getToken(scope);
@@ -165,7 +145,7 @@ test("Authenticates", async ({ page }) => {
       // CHALLENGE (6 of 6):
       // No way to log out.
     },
-    { clientId, protocol, host, port, scope, homeUri, testMode }
+    { clientId, scope, credentialOptions, testMode }
   );
 
   await stop();
